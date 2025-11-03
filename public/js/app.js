@@ -280,6 +280,53 @@ async function loadFromScrape(listUrl = DEFAULT_SOURCE) {
   });
 }
 
+// === IMAGE PREVIEW (fullscreen zoom + zoom toggle) ===
+document.addEventListener('click', e => {
+  const img = e.target.closest('.modal__shot');
+  if (!img) return;
+
+  // vytvor overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'image-preview-overlay';
+
+  const big = document.createElement('img');
+  big.src = img.src;
+  overlay.appendChild(big);
+  document.body.appendChild(overlay);
+
+  let zoomed = false;
+
+  // toggle zoom on image click
+  big.addEventListener('click', ev => {
+    ev.stopPropagation(); // aby sa nezavrelo overlay
+    zoomed = !zoomed;
+    if (zoomed) {
+      big.style.transform = 'scale(1.8)'; // zväčšiť
+      big.style.cursor = 'zoom-out';
+    } else {
+      big.style.transform = 'scale(1)';
+      big.style.cursor = 'zoom-in';
+    }
+  });
+
+  // zatvoriť kliknutím mimo obrázka
+  overlay.addEventListener('click', ev => {
+    if (ev.target === overlay) overlay.remove();
+  });
+
+  // ESC zatváranie
+  const onKey = ev => {
+    if (ev.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+  };
+  document.addEventListener('keydown', onKey);
+});
+
+
+
+
 document.addEventListener('DOMContentLoaded', async () => {
   attachEvents();
   showLoading('Načítavam knižnicu hier…');

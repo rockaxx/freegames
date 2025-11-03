@@ -359,3 +359,25 @@ body{
 @keyframes fadeUp {
   to { opacity: 1; transform: translateY(0); }
 }
+/* === FULLSCREEN IMAGE PREVIEW === */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn .2s ease;
+}
+.image-preview-overlay img {
+  max-width: 94vw;
+  max-height: 92vh;
+  border-radius: 10px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
+  animation: zoomIn .25s ease;
+  cursor: default;
+}
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+@keyframes zoomIn { from {transform:scale(.92);opacity:.6} to {transform:scale(1);opacity:1} }
