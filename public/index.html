@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sk">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,87 +8,102 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+
+<!-- loading screen -->
 <div id="loadingScreen" class="loading-screen" hidden>
   <div class="loading-content">
     <div class="loading-spinner"></div>
-    <p>Načítavam hry…</p>
+    <p>Loading games…</p>
   </div>
 </div>
 
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="brand">
-        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
-          <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
-        </svg>
-        <span class="brand__text">Nebula</span>
-      </div>
-      <nav class="nav">
-        <button class="nav__link active" data-route="store">Obchod</button>
-        <button class="nav__link" data-route="library">Knižnica</button>
-        <button class="nav__link" data-route="community">Komunita</button>
-        <button class="nav__link" data-route="profile">Profil</button>
-      </nav>
+<!-- topbar navigation -->
+<header class="topbar">
+  <div class="topbar__left">
+    <!-- brand -->
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+        <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+      </svg>
+      <span class="brand__text">K-D-A Launcher</span>
     </div>
-    <div class="topbar__right">
-      <div class="search">
-        <input id="searchInput" type="search" placeholder="Hľadať hry…">
-      </div>
-      <button class="btn btn--ghost" id="installBtn" title="Inštalácie">⬇</button>
-      <div class="avatar" title="Tvoj účet">A</div>
-    </div>
-  </header>
 
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar__section">
-        <div class="sidebar__title">Navigácia</div>
-        <a class="sidebar__item active">Domov</a>
-        <a class="sidebar__item">Nainštalované</a>
-        <a class="sidebar__item">Nedávno hrané</a>
-        <a class="sidebar__item">Wishlist</a>
-      </div>
-      <div class="sidebar__section">
-        <div class="sidebar__title">Hry</div>
-        <div class="sidebar__games" id="gameList">
-          <!-- dynamically filled -->
-        </div>
-      </div>
-    </aside>
-
-    <main class="content">
-      <section class="hero">
-        <div class="hero__bg"></div>
-        <div class="hero__content">
-          <h1>Novinky týždňa</h1>
-          <p>Objav šťavnaté zľavy, nové DLC a indie perly. Steam‑like štruktúra, čistý kód.</p>
-          <div class="hero__actions">
-            <button class="btn btn--primary">Pridať do košíka</button>
-            <button class="btn btn--ghost">Do wishlistu</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="shelf">
-        <div class="shelf__header">
-          <h2>Odporúčané pre teba</h2>
-          <a class="shelf__more" href="#">Zobraziť všetko</a>
-        </div>
-        <div class="cards" id="cardGrid">
-
-        </div>
-      </section>
-    </main>
+    <!-- main nav -->
+    <nav class="nav">
+      <button class="nav__link active" data-route="store">Store</button>
+      <button class="nav__link" data-route="library">Library</button>
+      <button class="nav__link" data-route="community">Community</button>
+    </nav>
   </div>
 
-  <div id="gameModal" class="modal" hidden>
-    <div class="modal__dialog">
-      <button id="modalClose" class="modal__close" aria-label="Zavrieť">×</button>
-      <div id="modalBody" class="modal__body"></div>
+  <!-- right topbar actions -->
+  <div class="topbar__right">
+    <div class="search">
+      <input id="searchInput" type="search" placeholder="Search games…">
     </div>
+    <button class="btn btn--ghost" id="installBtn" title="Installs">⬇</button>
+    <div class="avatar" title="Your account">A</div>
   </div>
+</header>
 
-  <script src="/js/app.js"></script>
+<!-- layout -->
+<div class="layout">
+
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__title">Navigation</div>
+      <a class="sidebar__item active">Games</a>
+      <a class="sidebar__item">Online-fix.me</a>
+    </div>
+
+    <div class="sidebar__section">
+      <div class="sidebar__title">Games</div>
+      <div class="sidebar__games" id="gameList">
+        <!-- dynamically filled -->
+      </div>
+    </div>
+  </aside>
+
+  <!-- main content -->
+  <main class="content">
+
+    <!-- hero section -->
+    <section class="hero">
+      <div class="hero__bg"></div>
+      <div class="hero__content">
+        <h1>Highlights of the Week</h1>
+        <p>Discover juicy discounts, new DLC, and indie gems. Steam-like structure, clean code.</p>
+        <div class="hero__actions">
+          <button class="btn btn--primary">Add to cart</button>
+          <button class="btn btn--ghost">Add to wishlist</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- recommended shelf -->
+    <section class="shelf">
+      <div class="shelf__header">
+        <h2>Recommended for you</h2>
+        <a class="shelf__more" href="#">View all</a>
+      </div>
+
+      <!-- game cards -->
+      <div class="cards" id="cardGrid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- modal for game details -->
+<div id="gameModal" class="modal" hidden>
+  <div class="modal__dialog">
+    <button id="modalClose" class="modal__close" aria-label="Close">×</button>
+    <div id="modalBody" class="modal__body"></div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
 </body>
 </html>
