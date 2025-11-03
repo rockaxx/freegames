@@ -1,6 +1,7 @@
 const cheerio = require("cheerio");
 const https = require("node:https");
 const { scrapeDetailAnker, scrapeDetail3rb } = require('./scrape');
+const { scrapeDetailRepackGames } = require('./repackgames');
 
 async function asyncPool(limit, array, iteratorFn) {
   const ret = [];

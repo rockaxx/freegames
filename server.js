@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape'); // <-- pridaj
 const { scrapeAnkerSearch, scrapeGame3rbSearch } = require('./search');
+const { scrapeDetailRepackGames } = require('./repackgames');
 const app = express();
 const PORT = process.env.PORT || 4021;
 
@@ -41,7 +42,9 @@ app.get('/api/scrape', async (req, res) => {
       'ankergames.net',
       'www.ankergames.net',
       'game3rb.com',
-      'www.game3rb.com'
+      'repack-games.com',
+      'www.repack-games.com'
+
     ]);
 
     if (!allow.has(hostname)) {
@@ -66,7 +69,8 @@ app.get('/api/all', async (req, res) => {
   try {
     const urls = [
       'https://ankergames.net/',
-      'https://game3rb.com/'
+      'https://game3rb.com/',
+      'https://repack-games.com/'
     ];
 
     let final = [];

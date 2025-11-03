@@ -1,6 +1,7 @@
 const https = require('node:https');
 const { URL } = require('node:url');
 const cheerio = require('cheerio');
+const { scrapeDetailRepackGames } = require('./repackgames');
 
 
 function fetchHtml(url) {
@@ -181,6 +182,12 @@ async function scrape(url) {
     const items = parseGame3rb(html, url);
     return { source: url, count: items.length, items };
   }
+
+  if (host.includes('repack-games.com')) {
+    const data = await scrapeDetailRepackGames(url);
+    return { source: url, count: 1, items: [data] };
+  }
+
 
   return { error: 'unknown domain' };
 }
