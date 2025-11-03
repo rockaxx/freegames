@@ -3,6 +3,7 @@ const https = require("node:https");
 const { scrapeDetailAnker, scrapeDetail3rb, scrapeDetailRepackGames } = require('./scrape');
 const { scrapeRepackSearch  } = require('./repackgames');
 const { scrapeSteamUndergroundSearch } = require('./steamunderground');
+const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = require('./onlinefix');
 
 async function asyncPool(limit, array, iteratorFn) {
   const ret = [];
@@ -20,6 +21,25 @@ async function asyncPool(limit, array, iteratorFn) {
     }
   }
   return Promise.all(ret);
+}
+async function scrapeOnlineFixFullSearch(q) {
+  const list = await scrapeOnlineFixSearch(q);
+  console.log(`[OnlineFix] Found ${list.length} search results. Fetching details...`);
+
+  const detailed = await asyncPool(3, list, async (g) => {
+    try {
+      const d = await scrapeDetailOnlineFix(g.href);
+      if (!d.poster) d.poster = g.img; // fallback from listing
+      if (!d.title) d.title = g.title;
+      return { ...g, ...d };
+    } catch (err) {
+      console.warn(`[OnlineFix] detail fail: ${g.href}`);
+      return g;
+    }
+  });
+
+  console.log(`[OnlineFix] Completed ${detailed.length} detail fetches.`);
+  return detailed;
 }
 
 
@@ -130,4 +150,4 @@ async function scrapeGame3rbSearch(q) {
 
 
 
-module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch };
+module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch, scrapeOnlineFixFullSearch };

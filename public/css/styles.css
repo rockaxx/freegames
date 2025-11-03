@@ -134,6 +134,11 @@ body{
   background-size:cover;
   background-position:center;
   background-repeat:no-repeat;
+
+}
+.modal__cover{
+  background-size:cover;
+  background-position:center;
 }
 
 .card__body{padding:12px}

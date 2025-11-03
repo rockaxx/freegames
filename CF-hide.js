@@ -1,26 +1,30 @@
-// CF-hide.js (rýchla verzia + cache + retries + keepalive)
+// CF-hide.js
+// Fast fetch with retries, keepalive, gzip/br/deflate support and simple cache.
+// IMPORTANT: decompress to Buffer first, then decode to string with correct charset.
+// Comments in English.
+
 const https = require('https');
 const zlib = require('zlib');
 const { URL } = require('url');
+const iconv = require('iconv-lite'); // decode cp1251 -> utf8
 
 const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 20, timeout: 60000 });
 const CACHE = new Map(); // key -> { ts, ttl, body }
 
-/**
- * Rozbalí gzipped/deflate/br odpoveď
- */
-function decompressBuffer(buffer, encoding) {
+// Decompress into a Buffer (not string). Caller decides how to decode buffer -> string.
+function decompressBufferToBuffer(buffer, encoding) {
   return new Promise((resolve, reject) => {
-    if (!encoding || encoding.includes('identity')) return resolve(buffer.toString('utf8'));
-    if (encoding.includes('gzip')) return zlib.gunzip(buffer, (e, r) => e ? reject(e) : resolve(r.toString('utf8')));
-    if (encoding.includes('deflate')) return zlib.inflate(buffer, (e, r) => e ? reject(e) : resolve(r.toString('utf8')));
-    if (encoding.includes('br')) return zlib.brotliDecompress(buffer, (e, r) => e ? reject(e) : resolve(r.toString('utf8')));
-    resolve(buffer.toString('utf8'));
+    if (!encoding || encoding.includes('identity')) return resolve(buffer);
+    if (encoding.includes('gzip')) return zlib.gunzip(buffer, (e, r) => e ? reject(e) : resolve(r));
+    if (encoding.includes('deflate')) return zlib.inflate(buffer, (e, r) => e ? reject(e) : resolve(r));
+    if (encoding.includes('br')) return zlib.brotliDecompress(buffer, (e, r) => e ? reject(e) : resolve(r));
+    // unknown encoding -> return original buffer
+    return resolve(buffer);
   });
 }
 
 /**
- * rýchly fetch s retry, keepAlive, gzip a jednoduchou cache
+ * fast fetch with retry, keepAlive, gzip/br/deflate and cache
  * options: { timeout, retries, cacheTTL, userAgent }
  */
 async function fetchWithCFBypass(rawUrl, options = {}) {
@@ -40,6 +44,7 @@ async function fetchWithCFBypass(rawUrl, options = {}) {
   }
 
   let attempt = 0;
+
   const doReq = () => new Promise((resolve, reject) => {
     attempt++;
     const req = https.request({
@@ -62,22 +67,47 @@ async function fetchWithCFBypass(rawUrl, options = {}) {
         res.on('data', c => chunks.push(c));
         res.on('end', async () => {
           const buffer = Buffer.concat(chunks);
-          let html = '';
+
+          let decompressedBuffer;
           try {
-            html = await decompressBuffer(buffer, res.headers['content-encoding'] || '');
+            decompressedBuffer = await decompressBufferToBuffer(buffer, res.headers['content-encoding'] || '');
           } catch (deErr) {
-            // fallback to raw text
-            html = buffer.toString('utf8');
+            // if decompression fails, fallback to original buffer
+            decompressedBuffer = buffer;
           }
 
-          // jednoduchá detekcia CF challenge
+          // Now decode buffer into string using correct charset.
+          // Prefer server-sent charset in headers (Content-Type) or fallback to site-specific rules.
+          let html = '';
+          const contentType = (res.headers['content-type'] || '').toLowerCase();
+
+          // detect charset from content-type header e.g. text/html; charset=windows-1251
+          const m = /charset=([a-z0-9-_]+)/i.exec(contentType);
+          if (m) {
+            const charset = m[1].toLowerCase();
+            try {
+              html = iconv.decode(decompressedBuffer, charset);
+            } catch (e) {
+              // fallback to utf8 decode if iconv fails
+              html = decompressedBuffer.toString('utf8');
+            }
+          } else {
+            // no header charset — use site-specific rule: online-fix uses CP1251 (win1251)
+            if (url.hostname.includes('online-fix.me') || url.hostname.includes('online-fix')) {
+              html = iconv.decode(decompressedBuffer, 'win1251');
+            } else {
+              // default to utf-8
+              html = decompressedBuffer.toString('utf8');
+            }
+          }
+
+          // simple Cloudflare challenge detection
           if (html.includes('Just a moment') || html.includes('Checking your browser') || /cf-browser-verification/i.test(html)) {
-            // vrátime prázdny string, ale medzitým logujeme
             console.warn(`[CF-hide] Challenge detected for ${rawUrl}`);
             return resolve('');
           }
 
-          // uloz do cache
+          // save to cache
           CACHE.set(cacheKey, { ts: Date.now(), ttl: cacheTTL, body: html });
           resolve(html);
         });
@@ -100,7 +130,6 @@ async function fetchWithCFBypass(rawUrl, options = {}) {
       const r = await doReq();
       return r;
     } catch (err) {
-      // backoff pred retry
       if (attempt > retries) {
         throw err;
       }

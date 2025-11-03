@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
-const { scrape } = require('./scrape'); // <-- pridaj
-const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch } = require('./search');
+const { scrape } = require('./scrape');
+const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch, scrapeOnlineFixFullSearch } = require('./search');
 const { createUser, getUser } = require('./query');
 
 const app = express();
@@ -11,9 +11,30 @@ app.disable('x-powered-by');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
-// jednoduchý cache (5 minút), nech nešľapeš na cudzí web pri každom refreshi
-const cache = new Map(); // key=url, val={ts,data}
+
+const cache = new Map();
 const TTL_MS = 5 * 60 * 1000;
+
+app.get('/api/img', async (req,res) => {
+  const url = req.query.url;
+  if(!url) return res.status(400).end();
+
+  try {
+    const r = await fetch(url, {
+      headers:{
+        'User-Agent':'Mozilla/5.0'
+      }
+    });
+
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.send(buf);
+
+  } catch(e) {
+    res.status(500).end();
+  }
+});
+
 
 // === AUTH ===
 
@@ -52,14 +73,15 @@ app.get('/api/search', async (req,res)=>{
   const q = req.query.q||"";
   if(!q) return res.json({items:[]});
 
-  const [A, B, C, D] = await Promise.all([
+  const [A, B, C, D, E] = await Promise.all([
     scrapeAnkerSearch(q),
     scrapeGame3rbSearch(q),
     scrapeRepackGamesSearch(q),
-    scrapeSteamUndergroundSearch(q)
+    scrapeSteamUndergroundSearch(q),
+    scrapeOnlineFixFullSearch(q)
   ]);
 
-  res.json({ items: [...A, ...B, ...C, ...D] });
+  res.json({ items: [...A, ...B, ...C, ...D, ...E] });
 
 });
 
@@ -81,7 +103,9 @@ app.get('/api/scrape', async (req, res) => {
       'repack-games.com',
       'www.repack-games.com',
       'steamunderground.net',
-      'www.steamunderground.net'
+      'www.steamunderground.net',
+      'online-fix.me',
+      'www.online-fix.me'
     ]);
 
     if (!allow.has(hostname)) {
@@ -102,13 +126,15 @@ app.get('/api/scrape', async (req, res) => {
     res.status(500).json({ error: 'Scrape zlyhal.' });
   }
 });
+
 app.get('/api/all', async (req, res) => {
   try {
     const urls = [
       'https://ankergames.net/',
       'https://game3rb.com/',
       'https://repack-games.com/',
-      'https://steamunderground.net/'
+      'https://steamunderground.net/',
+      'https://online-fix.me/'
     ];
 
     let final = [];

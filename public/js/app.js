@@ -65,8 +65,11 @@ function renderCards(list = games) {
   grid.innerHTML = '';
   list.forEach(g => {
 
-    // ↓ DOPLŇ 1 RIADOK:
     if(!g.img && g.poster) g.img = g.poster;
+    if (g.img) {
+      g.img = `/api/img?url=${encodeURIComponent(g.img)}`;
+    }
+
     let badgeClass = 'badge--good';
     if (g.src === 'Anker') badgeClass = 'badge--good';
     else if (g.src === 'Game3RB') badgeClass = 'badge--warn';
@@ -195,6 +198,47 @@ function openModal(game) {
           rel: 'noopener',
           class: 'modal__download'
         }, (dl.label || new URL(dl.link).hostname))
+      );
+      info.push(el('div', { class: 'modal__links' }, links));
+    }
+  }
+  // --- ŠPECIÁLNE LEN PRE OnlineFix ---
+  if (game.src === 'OnlineFix') {
+
+    // screenshoty (max 4)
+    if (Array.isArray(game.screenshots) && game.screenshots.length) {
+      const shots = game.screenshots.slice(0, 4);
+      info.push(
+        el('div', { class: 'modal__shots' },
+          shots.map(src => el('img', {
+            src: `/api/img?url=${encodeURIComponent(src)}`,
+            class: 'modal__shot'
+          }))
+        )
+      );
+    }
+
+    // trailer
+    if (game.trailer) {
+      info.push(
+        el('iframe', {
+          class: 'modal__trailer',
+          src: game.trailer,
+          allowfullscreen: true,
+          frameborder: 0
+        })
+      );
+    }
+
+    // download links
+    if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
+      const links = game.downloadLinks.map(dl =>
+        el('a', {
+          href: dl.link,
+          target: '_blank',
+          rel: 'noopener',
+          class: 'modal__download'
+        }, dl.label || new URL(dl.link).hostname)
       );
       info.push(el('div', { class: 'modal__links' }, links));
     }
