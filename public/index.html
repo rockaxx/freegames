@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steam‑like Template</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="brand">
+        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+          <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+        </svg>
+        <span class="brand__text">Nebula</span>
+      </div>
+      <nav class="nav">
+        <button class="nav__link active" data-route="store">Obchod</button>
+        <button class="nav__link" data-route="library">Knižnica</button>
+        <button class="nav__link" data-route="community">Komunita</button>
+        <button class="nav__link" data-route="profile">Profil</button>
+      </nav>
+    </div>
+    <div class="topbar__right">
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="Hľadať hry…">
+      </div>
+      <button class="btn btn--ghost" id="installBtn" title="Inštalácie">⬇</button>
+      <div class="avatar" title="Tvoj účet">A</div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__title">Navigácia</div>
+        <a class="sidebar__item active">Domov</a>
+        <a class="sidebar__item">Nainštalované</a>
+        <a class="sidebar__item">Nedávno hrané</a>
+        <a class="sidebar__item">Wishlist</a>
+      </div>
+      <div class="sidebar__section">
+        <div class="sidebar__title">Hry</div>
+        <div class="sidebar__games" id="gameList">
+          <!-- dynamically filled -->
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="hero">
+        <div class="hero__bg"></div>
+        <div class="hero__content">
+          <h1>Novinky týždňa</h1>
+          <p>Objav šťavnaté zľavy, nové DLC a indie perly. Steam‑like štruktúra, čistý kód.</p>
+          <div class="hero__actions">
+            <button class="btn btn--primary">Pridať do košíka</button>
+            <button class="btn btn--ghost">Do wishlistu</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="shelf">
+        <div class="shelf__header">
+          <h2>Odporúčané pre teba</h2>
+          <a class="shelf__more" href="#">Zobraziť všetko</a>
+        </div>
+        <div class="cards" id="cardGrid">
+          <!-- cards injected by JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="gameModal" hidden>
+    <div class="modal__dialog">
+      <button class="modal__close" id="modalClose" aria-label="Zavrieť">×</button>
+      <div class="modal__body" id="modalBody">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div>⚠️ Neoficiálna šablóna inšpirovaná Steam dizajnom. Žiadne logá/asset-y Valve.</div>
+    <div>© 2025 Nebula UI</div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

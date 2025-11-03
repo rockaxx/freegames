@@ -1,0 +1,20 @@
+{
+  "name": "steam-like-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Steam-inspired UI starter (no trademarks/assets). Node.js + Express.",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "express": "^4.19.2",
+    "puppeteer": "^24.28.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
