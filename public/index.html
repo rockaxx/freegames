@@ -3,11 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Steam‑like Template</title>
+  <title>Game Library</title>
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+<div id="loadingScreen" class="loading-screen" hidden>
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <p>Načítavam hry…</p>
+  </div>
+</div>
+
   <header class="topbar">
     <div class="topbar__left">
       <div class="brand">
@@ -69,18 +76,16 @@
           <a class="shelf__more" href="#">Zobraziť všetko</a>
         </div>
         <div class="cards" id="cardGrid">
-          <!-- cards injected by JS -->
+
         </div>
       </section>
     </main>
   </div>
 
-  <div class="modal" id="gameModal" hidden>
+  <div id="gameModal" class="modal" hidden>
     <div class="modal__dialog">
-      <button class="modal__close" id="modalClose" aria-label="Zavrieť">×</button>
-      <div class="modal__body" id="modalBody">
-        <!-- filled by JS -->
-      </div>
+      <button id="modalClose" class="modal__close" aria-label="Zavrieť">×</button>
+      <div id="modalBody" class="modal__body"></div>
     </div>
   </div>
 

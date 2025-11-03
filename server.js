@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape'); // <-- pridaj
-const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch } = require('./search');
+const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch } = require('./search');
 
 const app = express();
 const PORT = process.env.PORT || 4021;
@@ -19,13 +19,14 @@ app.get('/api/search', async (req,res)=>{
   const q = req.query.q||"";
   if(!q) return res.json({items:[]});
 
-  const [A, B, C] = await Promise.all([
+  const [A, B, C, D] = await Promise.all([
     scrapeAnkerSearch(q),
     scrapeGame3rbSearch(q),
-    scrapeRepackGamesSearch(q)
+    scrapeRepackGamesSearch(q),
+    scrapeSteamUndergroundSearch(q)
   ]);
 
-  res.json({ items: [...A, ...B, ...C] });
+  res.json({ items: [...A, ...B, ...C, ...D] });
 
 });
 
@@ -45,8 +46,9 @@ app.get('/api/scrape', async (req, res) => {
       'www.ankergames.net',
       'game3rb.com',
       'repack-games.com',
-      'www.repack-games.com'
-
+      'www.repack-games.com',
+      'steamunderground.net',
+      'www.steamunderground.net'
     ]);
 
     if (!allow.has(hostname)) {
@@ -72,7 +74,8 @@ app.get('/api/all', async (req, res) => {
     const urls = [
       'https://ankergames.net/',
       'https://game3rb.com/',
-      'https://repack-games.com/'
+      'https://repack-games.com/',
+      'https://steamunderground.net/'
     ];
 
     let final = [];

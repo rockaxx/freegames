@@ -213,4 +213,4 @@ function scrapeAnker(html, base) {
   return items;
 }
 
-module.exports = { scrape, scrapeDetailAnker, scrapeDetail3rb };
+module.exports = { scrape, scrapeDetailAnker, scrapeDetail3rb, scrapeDetailRepackGames };

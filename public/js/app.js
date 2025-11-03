@@ -12,6 +12,27 @@ let games = [
   { id: 6, title: "DarkOrbit Redux", tags: ["Space","MMO"], rating: "Kladné", price: "Free" },
 ];
 
+function showLoading(msg = 'Načítavam hry…') {
+  const el = document.getElementById('loadingScreen');
+  if (!el) return;
+  el.querySelector('p').textContent = msg;
+  el.hidden = false;
+
+  // Bezpečnostný timeout (fallback)
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => {
+    hideLoading();
+  }, 20000);
+}
+
+function hideLoading() {
+  const el = document.getElementById('loadingScreen');
+  if (!el) return;
+  clearTimeout(el._timeout);
+  el.hidden = true;
+}
+
+
 // --- UI helpery (tvoje) ---
 function el(tag, attrs={}, children=[]) {
   const node = document.createElement(tag);
@@ -140,6 +161,44 @@ function openModal(game) {
       ));
     }
   }
+  // --- ŠPECIÁLNE LEN PRE RepackGames ---
+  if (game.src === 'RepackGames') {
+
+    // Screenshoty
+    if (Array.isArray(game.screenshots) && game.screenshots.length) {
+      const shots = game.screenshots.slice(0, 4);
+      info.push(
+        el('div', { class: 'modal__shots' },
+          shots.map(src => el('img', { src, class: 'modal__shot' }))
+        )
+      );
+    }
+
+    // Trailer (YouTube embed)
+    if (game.trailer && game.trailer.includes('youtube')) {
+      info.push(
+        el('iframe', {
+          class: 'modal__trailer',
+          src: game.trailer,
+          allowfullscreen: true,
+          frameborder: 0
+        })
+      );
+    }
+
+    // Download links
+    if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
+      const links = game.downloadLinks.map(dl =>
+        el('a', {
+          href: dl.link,
+          target: '_blank',
+          rel: 'noopener',
+          class: 'modal__download'
+        }, (dl.label || new URL(dl.link).hostname))
+      );
+      info.push(el('div', { class: 'modal__links' }, links));
+    }
+  }
 
   // --- BUTTONS ---
   const buttons = el('div', { class: 'modal__buttons' }, [
@@ -170,54 +229,60 @@ function attachEvents(){
 
 const search = document.getElementById('searchInput');
 
-search.addEventListener('keydown', async (e)=>{
-  if(e.key !== 'Enter') return;
-
+search.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
   const q = search.value.trim();
-  if(!q){
+  if (!q) {
     renderCards(games);
     return;
   }
+  showLoading('Vyhľadávam…');
 
-  try{
-    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
+  try {
+    let data;
+    for (let i = 0; i < 6; i++) { // skúsi 6x (cca 3 sekundy celkovo)
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      data = await res.json();
+      if (Array.isArray(data.items) && data.items.length > 0) break;
+      await new Promise(r => setTimeout(r, 500)); // počkaj pol sekundy
+    }
 
-    const list = (data.items || []).map((it,idx)=>({
-      id: idx+1,
-      ...it
-    }));
-
-
+    const list = (data.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
     renderCards(list);
-  }catch(e){
-    console.warn('search fail',e);
+  } catch (e) {
+    console.warn('search fail', e);
+  } finally {
+    hideLoading();
   }
 });
 
 
 async function loadFromScrape(listUrl = DEFAULT_SOURCE) {
-  try {
-    const res = await fetch(listUrl);  // <--- TU
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+  showLoading('Načítavam knižnicu hier…');
 
-
-    games = (data.items || []).map((it, idx) => ({
-      id: idx + 1,
-      ...it // ← toto je point. nekafrem data, nezúžim ich
-    }));
-
-
-    renderGameList();
-    renderCards();
-  } catch(e) {
-    console.warn('Scrape failed, používam demo dataset:', e);
-    renderGameList();
-    renderCards();
-  }
+  // 🔧 Vráť Promise, aby sa .finally() spustilo
+  return new Promise(async (resolve) => {
+    try {
+      const res = await fetch(listUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      games = (data.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
+      renderGameList();
+      renderCards();
+    } catch (e) {
+      console.warn('Scrape failed, používam demo dataset:', e);
+      renderGameList();
+      renderCards();
+    } finally {
+      hideLoading(); 
+      resolve();
+    }
+  });
 }
 
-// bootstrap
-attachEvents();
-loadFromScrape(); // skúsi stiahnuť z DEFAULT_SOURCE; ak failne, zobrazí demo
+document.addEventListener('DOMContentLoaded', async () => {
+  attachEvents();
+  showLoading('Načítavam knižnicu hier…');
+  await loadFromScrape(); // čaká na dokončenie fetch
+  hideLoading();           // skryje až po úspechu
+});

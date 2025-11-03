@@ -1,15 +1,8 @@
 const cheerio = require("cheerio");
 const https = require("node:https");
-const { scrapeDetailAnker, scrapeDetail3rb } = require('./scrape');
+const { scrapeDetailAnker, scrapeDetail3rb, scrapeDetailRepackGames } = require('./scrape');
 const { scrapeRepackSearch  } = require('./repackgames');
-
-async function scrapeRepackGamesSearch(q) {
-  const url = `https://repack-games.com/?s=${encodeURIComponent(q)}`;
-  const results = await scrapeRepackSearch(url);
-  console.log(`[RepackGames] Found ${results.length} results.`);
-  return results;
-}
-
+const { scrapeSteamUndergroundSearch } = require('./steamunderground');
 
 async function asyncPool(limit, array, iteratorFn) {
   const ret = [];
@@ -28,6 +21,28 @@ async function asyncPool(limit, array, iteratorFn) {
   }
   return Promise.all(ret);
 }
+
+
+async function scrapeRepackGamesSearch(q) {
+  const url = `https://repack-games.com/?s=${encodeURIComponent(q)}`;
+  const list = await scrapeRepackSearch(url);
+  console.log(`[RepackGames] Found ${list.length} search results. Fetching details...`);
+
+  // fetch detail pre každý výsledok (limit 3 paralelne)
+  const detailed = await asyncPool(3, list, async (g) => {
+    try {
+      const d = await scrapeDetailRepackGames(g.href);
+      return { ...g, ...d };
+    } catch (err) {
+      console.warn(`[RepackGames] detail fail: ${g.href}`);
+      return g;
+    }
+  });
+
+  console.log(`[RepackGames] Completed ${detailed.length} detail fetches.`);
+  return detailed;
+}
+
 
 
 function fetchHtml(url) {
@@ -113,4 +128,6 @@ async function scrapeGame3rbSearch(q) {
 }
 
 
-module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch };
+
+
+module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch };

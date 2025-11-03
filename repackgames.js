@@ -1,56 +1,55 @@
 const { fetchWithCFBypass } = require('./CF-hide');
 const cheerio = require('cheerio');
 
-// ----------- DETAIL STRÁNKY -----------
+// repackgames.js
 async function scrapeDetailRepackGames(url) {
-  const html = await fetchWithCFBypass(url, { headless: true });
+  const html = await fetchWithCFBypass(url);
   const $ = cheerio.load(html);
 
-  const title = $('h1.entry-title').text().trim();
-  const poster =
-    $('img.aligncenter').attr('src') ||
-    $('div.entry-content img').first().attr('src') || '';
-  const desc = $('div.entry-content p').first().text().trim();
+  const title = $("h1.article-title, h1.entry-title").first().text().trim();
+  const poster = $(".media-single-content img").attr("src") || "";
+  const desc = $(".entry p").first().text().trim();
 
-  // meta info
-  const size = $('strong:contains("Size")').next().text().trim() || '';
-  const genre = $('strong:contains("Genre")').next().text().trim() || '';
-  const developer = $('strong:contains("Developer")').next().text().trim() || '';
-  const publisher = $('strong:contains("Publisher")').next().text().trim() || '';
-  const releaseDate = $('strong:contains("Release Date")').next().text().trim() || '';
+  const releaseDate = $("div.game-info h3:contains('PUBLISHED')")
+    .text()
+    .replace("PUBLISHED On -", "")
+    .trim();
 
-  // screenshots
+  // systémové požiadavky
+  const size = $("li:contains('Storage')").text().replace("Storage:", "").trim();
+
+  // screenshoty
   const screenshots = [];
-  $('div.gallery img, .wp-block-gallery img').each((_, el) => {
-    const src = $(el).attr('src');
+  $("#gallery-1 img").each((_, el) => {
+    const src = $(el).attr("data-src") || $(el).attr("src");
     if (src) screenshots.push(src);
   });
 
-  const trailer = $('iframe[src*="youtube"]').attr('src') || '';
+  const trailer = $("iframe[src*='youtube']").attr("src") || "";
 
-  // download odkazy
+  // odkazy na downloady (MEGA, 1FICHIER, atď.)
   const downloadLinks = [];
-  $('a[href*="download"], a[href*="links"]').each((_, a) => {
-    const href = $(a).attr('href');
-    const label = $(a).text().trim() || 'Download';
-    if (href && href.startsWith('http'))
-      downloadLinks.push({ label, link: href });
+  $("a.enjoy-css").each((_, el) => {
+    const link = $(el).attr("href");
+    const label = $(el).prev("span").text().trim();
+    if (link && link.startsWith("http"))
+      downloadLinks.push({ label, link });
   });
 
   return {
-    src: 'RepackGames',
+    src: "RepackGames",
     title,
+    href: url,
     poster,
     desc,
     size,
-    genre,
-    developer,
-    publisher,
+    genre: "",
+    developer: "",
+    publisher: "",
     releaseDate,
     screenshots,
     trailer,
-    downloadLinks,
-    href: url
+    downloadLinks
   };
 }
 
