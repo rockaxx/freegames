@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Game Library</title>
+  <title>K-D-A Launcher</title>
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -17,10 +17,9 @@
   </div>
 </div>
 
-<!-- topbar navigation -->
+<!-- topbar -->
 <header class="topbar">
   <div class="topbar__left">
-    <!-- brand -->
     <div class="brand">
       <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
@@ -29,7 +28,6 @@
       <span class="brand__text">K-D-A Launcher</span>
     </div>
 
-    <!-- main nav -->
     <nav class="nav">
       <button class="nav__link active" data-route="store">Store</button>
       <button class="nav__link" data-route="library">Library</button>
@@ -37,20 +35,42 @@
     </nav>
   </div>
 
-  <!-- right topbar actions -->
   <div class="topbar__right">
     <div class="search">
       <input id="searchInput" type="search" placeholder="Search games…">
     </div>
     <button class="btn btn--ghost" id="installBtn" title="Installs">⬇</button>
-    <div class="avatar" title="Your account">A</div>
+    <div class="avatar" id="accountBtn" title="Your account">A</div>
+
+    <!-- dropdown account box -->
+    <div id="accountBox" class="account-box" hidden>
+      <div class="account-tabs">
+        <button id="tabLogin" class="tab active">Login</button>
+        <button id="tabRegister" class="tab">Register</button>
+      </div>
+
+      <!-- login -->
+      <form id="loginForm" class="account-form">
+        <input type="text" placeholder="Username" required>
+        <input type="password" placeholder="Password" required>
+        <button class="btn btn--primary" type="submit">Sign In</button>
+      </form>
+
+      <!-- register -->
+      <form id="registerForm" class="account-form" hidden>
+        <input type="text" placeholder="Username" required>
+        <input type="email" placeholder="Email" required>
+        <input type="password" placeholder="Password" required>
+        <input type="password" placeholder="Confirm Password" required>
+        <button class="btn btn--primary" type="submit">Create Account</button>
+      </form>
+    </div>
   </div>
 </header>
 
 <!-- layout -->
 <div class="layout">
 
-  <!-- sidebar -->
   <aside class="sidebar">
     <div class="sidebar__section">
       <div class="sidebar__title">Navigation</div>
@@ -60,16 +80,11 @@
 
     <div class="sidebar__section">
       <div class="sidebar__title">Games</div>
-      <div class="sidebar__games" id="gameList">
-        <!-- dynamically filled -->
-      </div>
+      <div class="sidebar__games" id="gameList"></div>
     </div>
   </aside>
 
-  <!-- main content -->
   <main class="content">
-
-    <!-- hero section -->
     <section class="hero">
       <div class="hero__bg"></div>
       <div class="hero__content">
@@ -82,21 +97,17 @@
       </div>
     </section>
 
-    <!-- recommended shelf -->
     <section class="shelf">
       <div class="shelf__header">
         <h2>Recommended for you</h2>
         <a class="shelf__more" href="#">View all</a>
       </div>
-
-      <!-- game cards -->
       <div class="cards" id="cardGrid"></div>
     </section>
-
   </main>
 </div>
 
-<!-- modal for game details -->
+<!-- game modal -->
 <div id="gameModal" class="modal" hidden>
   <div class="modal__dialog">
     <button id="modalClose" class="modal__close" aria-label="Close">×</button>
@@ -105,5 +116,48 @@
 </div>
 
 <script src="/js/app.js"></script>
+
+<script>
+  const accBtn = document.getElementById('accountBtn');
+  const accBox = document.getElementById('accountBox');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+  const formLogin = document.getElementById('loginForm');
+  const formRegister = document.getElementById('registerForm');
+
+  accBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    accBox.hidden = !accBox.hidden;
+
+    if (!accBox.hidden) {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      formLogin.classList.add('active');
+      formRegister.classList.remove('active');
+    }
+  });
+
+  tabLogin.addEventListener('click', () => {
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+    formLogin.classList.add('active');
+    formRegister.classList.remove('active');
+  });
+
+  tabRegister.addEventListener('click', () => {
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+    formRegister.classList.add('active');
+    formLogin.classList.remove('active');
+  });
+
+  document.addEventListener('click', e => {
+    if (!accBox.hidden && !accBox.contains(e.target) && e.target !== accBtn) {
+      accBox.hidden = true;
+    }
+  });
+</script>
+
+
 </body>
 </html>

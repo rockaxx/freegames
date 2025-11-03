@@ -63,7 +63,7 @@ body{
 
 .avatar{
   width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
-  background:linear-gradient(135deg,#263a50,#172738); font-weight:800; border:1px solid rgba(255,255,255,.08)
+  background:linear-gradient(135deg,#263a50,#172738); font-weight:800; border:1px solid rgba(255,255,255,.08); cursor: pointer;
 }
 
 .layout{display:grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 56px)}
@@ -381,3 +381,89 @@ body{
 }
 @keyframes fadeIn { from {opacity:0} to {opacity:1} }
 @keyframes zoomIn { from {transform:scale(.92);opacity:.6} to {transform:scale(1);opacity:1} }
+/* === ACCOUNT DROPDOWN BOX === */
+.account-box {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: 260px;
+  background: linear-gradient(180deg,#0e1623 0%,#0c141e 100%);
+  border: 1px solid rgba(102,192,244,.15);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.55);
+  padding: 14px;
+  z-index: 999;
+  animation: fadeIn .15s ease;
+}
+@keyframes fadeIn { from {opacity:0;transform:translateY(-4px);} to {opacity:1;transform:translateY(0);} }
+
+/* tabs */
+.account-tabs {
+  display:flex;
+  gap:6px;
+  margin-bottom:14px;
+}
+.account-tabs .tab {
+  flex:1;
+  padding:8px 0;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+  color:var(--muted);
+  font-weight:700;
+  cursor:pointer;
+  font-size:13px;
+}
+.account-tabs .tab:hover {
+  background:rgba(255,255,255,.1);
+  color:#fff;
+}
+.account-tabs .tab.active {
+  background:rgba(102,192,244,.15);
+  color:#fff;
+  border:1px solid rgba(102,192,244,.35);
+}
+
+/* forms */
+.account-form {
+  display:none;
+  flex-direction:column;
+  gap:10px;
+}
+.account-form.active {
+  display:flex;
+}
+
+/* inputs */
+.account-form input {
+  background:linear-gradient(180deg,#172231,#121b26);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+  outline: none;
+  transition:border .15s, box-shadow .15s;
+}
+.account-form input:hover {
+  border-color:rgba(102,192,244,.25);
+}
+.account-form input:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(102,192,244,.22);
+}
+
+/* primary button same look as topbar */
+.account-form button.btn--primary {
+  width:100%;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));
+  color:#00111a;
+  font-weight:700;
+  padding:9px 0;
+  border-radius:10px;
+  border:0;
+  box-shadow:0 3px 10px rgba(102,192,244,.25);
+}
+.account-form button.btn--primary:hover {
+  filter:brightness(1.07);
+}
