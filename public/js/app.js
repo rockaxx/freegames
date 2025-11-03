@@ -61,45 +61,90 @@ function renderCards(list = games) {
   });
 }
 
-function openModal(game){
-
-  // normalizácia
-  if(!game.img && game.poster) game.img = game.poster;
-  if(!game.tags && game.genres) game.tags = game.genres;
+function openModal(game) {
+  if (!game.img && game.poster) game.img = game.poster;
+  if (!game.tags && game.genres) game.tags = game.genres;
 
   const modal = document.getElementById('gameModal');
   const body = document.getElementById('modalBody');
-
   body.innerHTML = '';
 
-  body.append(
-    el('div', {}, [
-      el('div', {class:'modal__cover', style: game.img ? `background-image:url('${game.img}')` : ''}),
-    ]),
+  // --- COVER ---
+  const cover = el('div', {
+    class: 'modal__cover',
+    style: game.img
+      ? `background-image:url('${game.img}');background-size:cover;background-position:center;`
+      : ''
+  });
 
-    el('div', {}, [
+  // --- INFO BLOCK ---
+  const info = [];
 
-      el('h2', {}, game.title || '???'),
+  info.push(el('h2', { class: 'modal__title' }, game.title || '???'));
+  if (game.subtitle) info.push(el('p', { class: 'modal__subtitle' }, game.subtitle));
+  if (game.tags?.length) info.push(el('p', { class: 'modal__tags' }, game.tags.join(', ')));
 
-      el('p', {}, `Tagy: ${(game.tags||[]).join(', ')}`),
+  const fields = [
+    ['Veľkosť', game.size],
+    ['Rok', game.year],
+    ['Verzia', game.version],
+    ['Release group', game.releaseGroup],
+    ['Developer', game.developer],
+    ['Publisher', game.publisher],
+    ['Dátum vydania', game.releaseDate],
+    ['Recenzie', game.reviews],
+  ];
+  fields.forEach(([label, val]) => val && info.push(el('p', {}, `${label}: ${val}`)));
 
-      game.size         ? el('p', {}, 'Veľkosť: '+game.size) : null,
-      game.year         ? el('p', {}, 'Rok: '+game.year) : null,
-      game.version      ? el('p', {}, 'Verzia: '+game.version) : null,
-      game.releaseGroup ? el('p', {}, 'Release group: '+game.releaseGroup) : null,
-      game.publisher    ? el('p', {}, 'Publisher: '+game.publisher) : null,
-      game.summary      ? el('p', {style:'margin-top:10px;'}, game.summary) : null,
-      game.desc         ? el('p', {}, 'Popis: '+game.desc) : null,
-      game.steam        ? el('p', {}, el('a',{href:game.steam,target:'_blank',rel:'noopener'},'Steam')) : null,
-      game.href         ? el('p', {}, el('a',{href:game.href,target:'_blank',rel:'noopener'},'Otvoriť detail')) : null,
+  if (game.steam)
+    info.push(el('p', {}, el('a', { href: game.steam, target: '_blank', rel: 'noopener' }, 'Steam stránka')));
+  if (game.href)
+    info.push(el('p', {}, el('a', { href: game.href, target: '_blank', rel: 'noopener' }, 'Otvoriť detail')));
 
-      el('div', {style:'display:flex; gap:10px; margin-top:10px'}, [
-        el('button', {class:'btn btn--primary'}, 'Kúpiť'),
-        el('button', {class:'btn btn--ghost'}, 'Do wishlistu'),
-      ])
-    ])
-  );
+  if (game.desc)
+    info.push(el('p', { style: 'margin-top:10px;' }, game.desc));
+  if (game.about)
+    info.push(el('p', { style: 'margin-top:10px;' }, game.about));
 
+  // --- ŠPECIÁLNE LEN PRE Game3RB ---
+  if (game.src === 'Game3RB') {
+    // screenshoty (max 3)
+    if (Array.isArray(game.screenshots) && game.screenshots.length) {
+      const shots = game.screenshots.slice(0, 3);
+      info.push(
+        el('div', { class: 'modal__shots' },
+          shots.map(src => el('img', { src, class: 'modal__shot' }))
+        )
+      );
+    }
+
+    if (game.trailer) {
+      info.push(el('video', {
+        controls: true,
+        class: 'modal__trailer',
+        src: game.trailer
+      }));
+    }
+
+    if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
+      info.push(el('div', { class: 'modal__links' },
+        game.downloadLinks.map(dl => el('a', {
+          href: dl.link,
+          target: '_blank',
+          rel: 'noopener',
+          class: 'modal__download'
+        }, dl.label || dl.link))
+      ));
+    }
+  }
+
+  // --- BUTTONS ---
+  const buttons = el('div', { class: 'modal__buttons' }, [
+    el('button', { class: 'btn btn--primary' }, 'Kúpiť'),
+    el('button', { class: 'btn btn--ghost' }, 'Do wishlistu')
+  ]);
+
+  body.append(cover, el('div', { class: 'modal__info' }, info), buttons);
   modal.hidden = false;
 }
 
