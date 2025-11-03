@@ -1,7 +1,7 @@
 const https = require('node:https');
 const { URL } = require('node:url');
 const cheerio = require('cheerio');
-const { scrapeDetailRepackGames } = require('./repackgames');
+const { scrapeDetailRepackGames, scrapeRepackList } = require('./repackgames');
 
 
 function fetchHtml(url) {
@@ -184,8 +184,8 @@ async function scrape(url) {
   }
 
   if (host.includes('repack-games.com')) {
-    const data = await scrapeDetailRepackGames(url);
-    return { source: url, count: 1, items: [data] };
+    const items = await scrapeRepackList(url);
+    return { source: url, count: items.length, items };
   }
 
 

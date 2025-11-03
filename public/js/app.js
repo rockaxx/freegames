@@ -46,14 +46,17 @@ function renderCards(list = games) {
 
     // ↓ DOPLŇ 1 RIADOK:
     if(!g.img && g.poster) g.img = g.poster;
-
+    let badgeClass = 'badge--good';
+    if (g.src === 'Anker') badgeClass = 'badge--good';
+    else if (g.src === 'Game3RB') badgeClass = 'badge--warn';
+    else if (g.src === 'RepackGames') badgeClass = 'badge--neutral';
     const card = el('article', {class:'card', onclick: () => openModal(g)}, [
       el('div', {class:'card__thumb', style: g.img ? `background-image:url('${g.img}')` : ''}),
       el('div', {class:'card__body'}, [
         el('h3', {class:'card__title'}, g.title),
         el('div', {class:'card__meta'}, [
-          el('span', {}, g.date || g.price || ''),
-          el('span', {class:'badge ' + ((g.rating||'').includes('kladné') ? 'badge--good' : 'badge--warn')}, g.rating || (g.tags?.[0]||'')),
+          el('span', {}, g.src || ''),
+          el('span', { class: 'badge ' + badgeClass }, (g.tags?.[0] || 'Not Categorized').substring(0, 16))
         ])
       ])
     ]);

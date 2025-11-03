@@ -1,130 +1,74 @@
 /**
  * CF-hide.js
- * Univerzálny modul na obchádzanie Cloudflare ochrany
- * Kompatibilný s hocijakou stránkou
+ * Rýchla verzia bez Puppeteer – používa len HTTPS požiadavky s bežnými hlavičkami
  */
 
-const puppeteer = require('puppeteer');
+const https = require("https");
+const { URL } = require("url");
 
 /**
- * Fetchne obsah stránky s obídením Cloudflare
- * @param {string} url - URL stránky na scrape
- * @param {object} options - Voliteľné nastavenia
+ * Fetchne obsah stránky (s pseudo "CF bypass" – vyzerá ako reálny browser)
+ * @param {string} url - URL stránky
+ * @param {object} options
  * @returns {Promise<string>} HTML obsah stránky
  */
 async function fetchWithCFBypass(url, options = {}) {
   const {
-    timeout = 30000,
-    waitForSelector = null,
-    userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    headless = true,
-    extraWaitTime = 2000
+    timeout = 20000,
+    userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
   } = options;
 
-  let browser = null;
-
-  try {
-    browser = await puppeteer.launch({
-      headless: headless ? 'new' : false,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-web-security'
-      ]
-    });
-
-    const page = await browser.newPage();
-
-    // Nastavenie user agenta
-    await page.setUserAgent(userAgent);
-
-    // Skrytie automatizácie
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', {
-        get: () => false
-      });
-
-      // Pridanie chrome objekt
-      window.chrome = {
-        runtime: {}
-      };
-
-      // Úprava permissions API
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters) => (
-        parameters.name === 'notifications' ?
-          Promise.resolve({ state: Notification.permission }) :
-          originalQuery(parameters)
+  return new Promise((resolve, reject) => {
+    try {
+      const u = new URL(url);
+      const req = https.request(
+        {
+          hostname: u.hostname,
+          path: u.pathname + (u.search || ""),
+          method: "GET",
+          headers: {
+            "User-Agent": userAgent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+          },
+          timeout,
+        },
+        (res) => {
+          let html = "";
+          res.on("data", (chunk) => (html += chunk));
+          res.on("end", () => {
+            // Ak Cloudflare vráti challenge
+            if (html.includes("Just a moment") || html.includes("Checking your browser")) {
+              console.warn("[CF-hide] Cloudflare challenge – stránka je blokovaná.");
+              return resolve("");
+            }
+            resolve(html);
+          });
+        }
       );
-    });
 
-    // Nastavenie viewportu
-    await page.setViewport({ width: 1920, height: 1080 });
-
-    // Extra HTTP headers
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-    });
-
-    console.log(`[CF-hide] Načítavam: ${url}`);
-
-    // Navigácia na stránku
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout
-    });
-
-    // Čakanie na Cloudflare check
-    if (waitForSelector) {
-      await page.waitForSelector(waitForSelector, { timeout });
-    } else {
-      // Generické čakanie pre CF check
-      await page.waitForTimeout(extraWaitTime);
+      req.on("error", (err) => reject(err));
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("Timeout"));
+      });
+      req.end();
+    } catch (err) {
+      reject(err);
     }
-
-    // Kontrola či CF challenge prebehol
-    const title = await page.title();
-    if (title.includes('Just a moment') || title.includes('Attention Required')) {
-      console.log('[CF-hide] Čakám na CF challenge...');
-      await page.waitForTimeout(5000);
-    }
-
-    // Získanie HTML obsahu
-    const html = await page.content();
-
-    console.log(`[CF-hide] Úspešne získané (${html.length} znakov)`);
-
-    return html;
-
-  } catch (error) {
-    console.error('[CF-hide] Chyba:', error.message);
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
+  });
 }
 
 /**
- * Pomocná funkcia na detekciu či stránka potrebuje CF bypass
- * @param {string} hostname - Hostname stránky
- * @returns {boolean}
+ * Detekcia či treba bypass
  */
 function needsCFBypass(hostname) {
-  const cfProtectedSites = [
-    'repack-games.com',
-    'www.repack-games.com'
-    // Pridaj ďalšie stránky podľa potreby
-  ];
-
-  return cfProtectedSites.some(site => hostname.includes(site));
+  const cfSites = ["repack-games.com", "www.repack-games.com"];
+  return cfSites.some((s) => hostname.includes(s));
 }
 
-module.exports = {
-  fetchWithCFBypass,
-  needsCFBypass
-};
+module.exports = { fetchWithCFBypass, needsCFBypass };

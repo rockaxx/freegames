@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape'); // <-- pridaj
-const { scrapeAnkerSearch, scrapeGame3rbSearch } = require('./search');
-const { scrapeDetailRepackGames } = require('./repackgames');
+const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch } = require('./search');
+
 const app = express();
 const PORT = process.env.PORT || 4021;
 
@@ -19,12 +19,14 @@ app.get('/api/search', async (req,res)=>{
   const q = req.query.q||"";
   if(!q) return res.json({items:[]});
 
-  const [A,B] = await Promise.all([
+  const [A, B, C] = await Promise.all([
     scrapeAnkerSearch(q),
-    scrapeGame3rbSearch(q)
+    scrapeGame3rbSearch(q),
+    scrapeRepackGamesSearch(q)
   ]);
 
-  res.json({ items:[...A,...B] });
+  res.json({ items: [...A, ...B, ...C] });
+
 });
 
 app.get('/api/scrape', async (req, res) => {

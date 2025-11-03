@@ -1,7 +1,15 @@
 const cheerio = require("cheerio");
 const https = require("node:https");
 const { scrapeDetailAnker, scrapeDetail3rb } = require('./scrape');
-const { scrapeDetailRepackGames } = require('./repackgames');
+const { scrapeRepackSearch  } = require('./repackgames');
+
+async function scrapeRepackGamesSearch(q) {
+  const url = `https://repack-games.com/?s=${encodeURIComponent(q)}`;
+  const results = await scrapeRepackSearch(url);
+  console.log(`[RepackGames] Found ${results.length} results.`);
+  return results;
+}
+
 
 async function asyncPool(limit, array, iteratorFn) {
   const ret = [];
@@ -105,4 +113,4 @@ async function scrapeGame3rbSearch(q) {
 }
 
 
-module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch };
+module.exports = { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch };
