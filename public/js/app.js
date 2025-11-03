@@ -80,7 +80,7 @@ function renderCards(list = games) {
         el('h3', {class:'card__title'}, g.title),
         el('div', {class:'card__meta'}, [
           el('span', {}, g.src || ''),
-          el('span', { class: 'badge ' + badgeClass }, (g.tags?.[0] || 'Not Categorized').substring(0, 16))
+          el('span', { class: 'badge ' + badgeClass }, (g.tags?.[0] == "Simulati" ? "Simulation" : (g.tags?.[0] == "Cyberpun" ? "Cyberpunk" : g.tags?.[0]) || 'Not Categorized').substring(0, 16))
         ])
       ])
     ]);
