@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape');
 const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch, scrapeOnlineFixFullSearch } = require('./search');
-const { createUser, getUser } = require('./query');
+const { createUser, getUser } = require('./database/query');
 
 const app = express();
 const PORT = process.env.PORT || 4021;

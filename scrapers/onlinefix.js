@@ -1,6 +1,6 @@
 // onlinefix.js
 const cheerio = require('cheerio');
-const { fetchWithCFBypass } = require('./CF-hide');
+const { fetchWithCFBypass } = require('./cloudflare');
 
 function absolutize(href, base) {
   try { return new URL(href, base).href; } catch { return href; }
