@@ -2,17 +2,50 @@ const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape'); // <-- pridaj
 const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch } = require('./search');
+const { createUser, getUser } = require('./query');
 
 const app = express();
 const PORT = process.env.PORT || 4021;
 
 app.disable('x-powered-by');
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 // jednoduchý cache (5 minút), nech nešľapeš na cudzí web pri každom refreshi
 const cache = new Map(); // key=url, val={ts,data}
 const TTL_MS = 5 * 60 * 1000;
 
+// === AUTH ===
+
+app.post('/api/register', async (req,res) => {
+  try {
+    const { username, email, password } = req.body;
+    if(!username || !email || !password) return res.status(400).json({error:"missing fields"});
+
+    // TODO: hash – teraz raw (neriešime)
+    const id = await createUser(username, email, password);
+    res.json({ ok:true, id });
+  } catch(e){
+    res.status(500).json({error:"register failed"});
+  }
+});
+
+app.post('/api/login', async (req,res) => {
+  try {
+    const { username, password } = req.body;
+    if(!username || !password) return res.status(400).json({error:"missing fields"});
+
+    const user = await getUser(username);
+    if(!user) return res.status(401).json({error:"invalid"});
+
+    // TODO hash compare – teraz raw equal
+    if(user.password !== password) return res.status(401).json({error:"invalid"});
+
+    res.json({ ok:true, user:{id:user.id, username:user.username, email:user.email} });
+  } catch(e){
+    res.status(500).json({error:"login failed"});
+  }
+});
 
 
 app.get('/api/search', async (req,res)=>{

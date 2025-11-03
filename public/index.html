@@ -32,6 +32,7 @@
       <button class="nav__link active" data-route="store">Store</button>
       <button class="nav__link" data-route="library">Library</button>
       <button class="nav__link" data-route="community">Community</button>
+      <button class="nav__link trusted" data-route="trusted">Trusted ❤️</button>
     </nav>
   </div>
 
@@ -156,6 +157,97 @@
       accBox.hidden = true;
     }
   });
+
+// === AUTH CLIENT SIDE ===
+formRegister.addEventListener('submit', async e => {
+  e.preventDefault();
+  const [usernameEl, emailEl, passEl, pass2El] = formRegister.querySelectorAll('input');
+  if(passEl.value !== pass2El.value) return alert('Passwords mismatch');
+
+  const r = await fetch('/api/register', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: usernameEl.value.trim(),
+      email: emailEl.value.trim(),
+      password: passEl.value
+    })
+  });
+  const data = await r.json();
+  if(!data.ok) return alert('Register failed');
+
+  // stored fake session:
+  localStorage.setItem('user', JSON.stringify({username:usernameEl.value.trim(), email:emailEl.value.trim()}));
+  updateLoggedUI();
+  accBox.hidden = true;
+});
+
+formLogin.addEventListener('submit', async e => {
+  e.preventDefault();
+  const [usernameEl, passEl] = formLogin.querySelectorAll('input');
+
+  const r = await fetch('/api/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: usernameEl.value.trim(),
+      password: passEl.value
+    })
+  });
+  const data = await r.json();
+  if(!data.ok) return alert('Invalid login');
+
+  localStorage.setItem('user', JSON.stringify(data.user));
+  updateLoggedUI();
+  accBox.hidden = true;
+});
+
+function updateLoggedUI(){
+  const u = JSON.parse(localStorage.getItem('user')||'null');
+  if(!u) return;
+
+  tabLogin.style.display = 'none';
+  tabRegister.style.display = 'none';
+  formLogin.style.display = 'none';
+  formRegister.style.display = 'none';
+
+  accBox.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div style="
+        width:42px;
+        height:42px;
+        border-radius:50%;
+        display:grid;
+        place-items:center;
+        background:linear-gradient(135deg,#263a50,#172738);
+        border:1px solid rgba(255,255,255,.08);
+        font-weight:800;
+        font-size:17px;
+        cursor:pointer;
+        ">
+        ${u.username[0].toUpperCase()}
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        <div style="font-weight:700;font-size:15px;">${u.username}</div>
+        <div style="font-size:13px;color:var(--muted);">${u.email||''}</div>
+      </div>
+    </div>
+
+    <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout</button>
+  `;
+
+  document.getElementById('logoutBtn').onclick = () => {
+    localStorage.removeItem('user');
+    location.reload();
+  };
+
+  // change avatar letter
+  accBtn.textContent = u.username[0].toUpperCase();
+}
+
+// autoload on refresh
+updateLoggedUI();
+
 </script>
 
 

@@ -42,8 +42,18 @@ body{
   background:transparent; color:var(--muted); border:0; padding:8px 10px;
   border-radius:10px; cursor:pointer; font-weight:600; letter-spacing:.2px;
 }
+
 .nav__link:hover{color:#fff; background:rgba(255,255,255,.06)}
 .nav__link.active{color:#fff; background:rgba(102,192,244,.15); outline:1px solid rgba(102,192,244,.35)}
+.nav__link.trusted {
+  color: #ff61fc;
+  background: rgba(255, 0, 212, 0.15);
+  outline: 1px solid rgba(255, 0, 212, 0.35);
+}
+
+.nav__link.trusted:hover {
+  background: rgba(255, 0, 212, 0.25);
+}
 
 .topbar__right{display:flex; align-items:center; gap:10px}
 .search{position:relative}
@@ -118,7 +128,14 @@ body{
   border-radius:12px; overflow:hidden; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
 }
 .card:hover{transform:translateY(-3px); box-shadow:var(--shadow)}
-.card__thumb{aspect-ratio:16/9; background:linear-gradient(135deg,#203447,#1b2838)}
+.card__thumb{
+  aspect-ratio:16/9;
+  background:linear-gradient(135deg,#203447,#1b2838);
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+
 .card__body{padding:12px}
 .card__title{font-weight:800; margin:0 0 2px}
 .card__meta{font-size:12px; color:var(--muted); display:flex; justify-content:space-between; gap:6px}
