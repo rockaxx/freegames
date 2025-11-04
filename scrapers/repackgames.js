@@ -1,59 +1,98 @@
+// repackgames.js
 const { fetchWithCFBypass } = require('./cloudflare');
 const cheerio = require('cheerio');
 
-// repackgames.js
+/** Keep only one link per host and no exact-URL duplicates. */
+function dedupeLinks(raw) {
+  const seenUrl = new Set();
+  const seenHost = new Set();
+  const out = [];
+
+  for (const item of raw) {
+    if (!item || !item.link) continue;
+    try {
+      const u = new URL(item.link);
+      const host = u.hostname.replace(/^www\./, '');
+
+      if (seenUrl.has(u.href)) continue;      // exact same URL already kept
+      if (seenHost.has(host)) continue;       // keep only first link per host
+
+      seenUrl.add(u.href);
+      seenHost.add(host);
+      out.push({
+        link: u.href,
+        label: host, // normalize label to the hostname
+      });
+    } catch (_) {
+      // ignore malformed links
+    }
+  }
+  return out;
+}
+
+// ---------- DETAIL ----------
 async function scrapeDetailRepackGames(url) {
   const html = await fetchWithCFBypass(url);
   const $ = cheerio.load(html);
 
-  const title = $("h1.article-title, h1.entry-title").first().text().trim();
-  const poster = $(".media-single-content img").attr("src") || "";
-  const desc = $(".entry p").first().text().trim();
+  const title =
+    $('h1.article-title, h1.entry-title').first().text().trim();
+  const poster = $('.media-single-content img').attr('src') || '';
+  const desc = $('.entry p').first().text().trim();
 
   const releaseDate = $("div.game-info h3:contains('PUBLISHED')")
     .text()
-    .replace("PUBLISHED On -", "")
+    .replace('PUBLISHED On -', '')
     .trim();
 
-  // systémové požiadavky
-  const size = $("li:contains('Storage')").text().replace("Storage:", "").trim();
+  // System requirements – only storage text (if present)
+  const size = $("li:contains('Storage')")
+    .text()
+    .replace('Storage:', '')
+    .trim();
 
-  // screenshoty
+  // Screenshots
   const screenshots = [];
-  $("#gallery-1 img").each((_, el) => {
-    const src = $(el).attr("data-src") || $(el).attr("src");
+  $('#gallery-1 img').each((_, el) => {
+    const src = $(el).attr('data-src') || $(el).attr('src');
     if (src) screenshots.push(src);
   });
 
-  const trailer = $("iframe[src*='youtube']").attr("src") || "";
+  // Trailer (YouTube)
+  const trailer = $("iframe[src*='youtube']").attr('src') || '';
 
-  // odkazy na downloady (MEGA, 1FICHIER, atď.)
-  const downloadLinks = [];
-  $("a.enjoy-css").each((_, el) => {
-    const link = $(el).attr("href");
-    const label = $(el).prev("span").text().trim();
-    if (link && link.startsWith("http"))
-      downloadLinks.push({ label, link });
+  // Raw download links collected from the page
+  const rawLinks = [];
+  $('a.enjoy-css').each((_, el) => {
+    const link = $(el).attr('href');
+    if (!link || !/^https?:\/\//i.test(link)) return;
+
+    // Some pages put a descriptive <span> before the button. We ignore it
+    // because we normalize labels to hostname to avoid duplicates.
+    rawLinks.push({ link });
   });
 
+  // Deduplicate by exact URL and by host (keep first per host)
+  const downloadLinks = dedupeLinks(rawLinks);
+
   return {
-    src: "RepackGames",
+    src: 'RepackGames',
     title,
     href: url,
     poster,
     desc,
     size,
-    genre: "",
-    developer: "",
-    publisher: "",
+    genre: '',
+    developer: '',
+    publisher: '',
     releaseDate,
     screenshots,
     trailer,
-    downloadLinks
+    downloadLinks,
   };
 }
 
-// ----------- HOMEPAGE / ZOZNAM -----------
+// ----------- HOMEPAGE / LIST -----------
 async function scrapeRepackList(url) {
   const html = await fetchWithCFBypass(url, { headless: true });
   const $ = cheerio.load(html);
@@ -69,7 +108,8 @@ async function scrapeRepackList(url) {
     const title =
       $el.find('h2').text().trim() ||
       $el.find('img').attr('title') ||
-      $el.attr('id') || '';
+      $el.attr('id') ||
+      '';
 
     const category = $el.find('.artbtn-category a').text().trim();
     const author = $el.find('.link-author a').text().trim();
@@ -81,16 +121,16 @@ async function scrapeRepackList(url) {
         title,
         href,
         img,
-        tags: [category, author, time].filter(Boolean)
+        tags: [category, author, time].filter(Boolean),
       });
     }
   });
 
-  console.log(`[RepackGames] Načítaných položiek: ${items.length}`);
+  console.log(`[RepackGames] Loaded items: ${items.length}`);
   return items;
 }
 
-// ----------- SEARCH / HĽADANIE -----------
+// ----------- SEARCH -----------
 async function scrapeRepackSearch(url) {
   const html = await fetchWithCFBypass(url, { headless: true });
   const $ = cheerio.load(html);
@@ -112,27 +152,23 @@ async function scrapeRepackSearch(url) {
     const author = $el.find('.link-author a').text().trim();
     const time = $el.find('.time-article a').text().trim();
 
-    // iba platné výsledky
     if (href && title && href.includes('repack-games.com')) {
       items.push({
         src: 'RepackGames',
         title,
         href,
         img,
-        tags: [category, author, time].filter(Boolean)
+        tags: [category, author, time].filter(Boolean),
       });
     }
   });
 
-  console.log(`[RepackGames SEARCH] Výsledkov: ${items.length}`);
+  console.log(`[RepackGames SEARCH] Results: ${items.length}`);
   return items;
 }
 
 module.exports = {
   scrapeDetailRepackGames,
   scrapeRepackList,
-  scrapeRepackSearch
+  scrapeRepackSearch,
 };
-
-
-module.exports = { scrapeDetailRepackGames, scrapeRepackList, scrapeRepackSearch };

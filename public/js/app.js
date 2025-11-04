@@ -326,17 +326,29 @@ function openModal(game) {
     }
 
 
-    if (game.trailer) {
+  // Render trailer only if the source does NOT have its own trailer section.
+  const sourceHasOwnTrailer = (game.src === 'RepackGames' || game.src === 'OnlineFix');
+  if (!sourceHasOwnTrailer && game.trailer) {
+    if (/youtube|youtu\.be/.test(game.trailer)) {
+      info.push(el('iframe', {
+        class: 'modal__trailer',
+        src: game.trailer,
+        allowfullscreen: true,
+        frameborder: 0
+      }));
+    } else {
       info.push(el('video', {
         controls: true,
         class: 'modal__trailer',
         src: game.trailer
       }));
     }
+  }
 
-  if (Array.isArray(game.downloadLinks)) {
+  // NEW: render the generic block only for sources WITHOUT their own section
+  const hasOwnDownloadSection = (game.src === 'RepackGames' || game.src === 'OnlineFix');
+  if (!hasOwnDownloadSection && Array.isArray(game.downloadLinks)) {
     const validLinks = game.downloadLinks.filter(x => x && x.link && typeof x.link === 'string');
-
     if (validLinks.length) {
       info.push(el('div', { class: 'modal__links' },
         validLinks.map(dl => el('a', {
