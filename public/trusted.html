@@ -37,10 +37,6 @@
   </div>
 
   <div class="topbar__right">
-    <div class="search">
-      <input id="searchInput" type="search" placeholder="Search games…">
-    </div>
-    <button class="btn btn--ghost" id="installBtn" title="Installs">⬇</button>
     <div class="avatar" id="accountBtn" title="Your account">A</div>
 
     <!-- dropdown account box -->
@@ -69,66 +65,24 @@
   </div>
 </header>
 
-<!-- layout -->
-<!--
-<div class="layout">
-
-  <aside class="sidebar">
-    <div class="sidebar__section">
-      <div class="sidebar__title">Navigation</div>
-      <a class="sidebar__item active" href="/">Games</a>
-      <a class="sidebar__item" href="/online">Online-fix.me</a>
-    </div>
-   
-    <div class="sidebar__section">
-      <div class="sidebar__title">Games</div>
-      <div class="sidebar__games" id="gameList"></div>
-    </div>
-  </aside>
-
-  <main class="content">
-    <section class="hero">
-      <div class="hero__bg"></div>
-      <div class="hero__content">
-        <h1>Highlights of the Week</h1>
-        <p>Discover juicy discounts, new DLC, and indie gems. Steam-like structure, clean code.</p>
-        <div class="hero__actions">
-          <button class="btn btn--primary">Add to cart</button>
-          <button class="btn btn--ghost">Add to wishlist</button>
-        </div>
+<!-- Trusted Downloads Layout -->
+<div class="trusted-container">
+  <section class="trusted-hero">
+    <div class="trusted-hero__content">
+      <h1>Trusted Downloads ❤️</h1>
+      <p>Handpicked and verified software, cracked by trusted sources.</p>
+      <div class="search" style="max-width: 500px; margin: 20px auto 0;">
+        <input id="trustedSearch" type="search" placeholder="Search software...">
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="shelf">
-      <div class="shelf__header">
-        <h2>Recommended for you</h2>
-        <div id="srcFilter" class="src-filter">
-          <button data-src="ALL">ALL</button>
-          <button data-src="Anker">Anker</button>
-          <button data-src="RepackGames">Repack</button>
-          <button data-src="OnlineFix">OnlineFix</button>
-          <button data-src="Game3RB">Game3RB</button>
-          <button data-src="SteamUnderground">SteamUnd.</button>
-        </div>
-        <a class="shelf__more" href="#">View all</a>
-      </div>
-      <div class="cards" id="cardGrid"></div>
-    </section>
-  </main>
- 
-
+  <section class="trusted-section">
+    <div id="trustedGrid" class="trusted-grid"></div>
+  </section>
 </div>
--->
 
-<!--
- game modal
-<div id="gameModal" class="modal" hidden>
-  <div class="modal__dialog">
-    <button id="modalClose" class="modal__close" aria-label="Close">×</button>
-    <div id="modalBody" class="modal__body"></div>
-  </div>
-</div>-->
-
+<script src="/js/trusted.js"></script>
 <script src="/js/app.js"></script>
 
 <script>
