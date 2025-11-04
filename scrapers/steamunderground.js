@@ -1,9 +1,4 @@
 // steamunderground.js
-// Clean detail + search scraper for steamunderground.net
-// - Extracts poster, meta, and robust "Uploaded" date
-// - No screenshots (per user's request)
-// - English-only comments
-
 const cheerio = require('cheerio');
 const { fetchWithCFBypass } = require('./cloudflare');
 
@@ -71,7 +66,7 @@ function bestFromSrcset(srcset) {
   for (const part of srcset.split(',')) {
     const seg = part.trim();
     if (!seg) continue;
-    const m = seg.match(/(\S+)\s+(\d+)w/i);
+    const m = seg.match(/(\S+)\s+(\d+)w/i); // "URL 1024w"
     if (m) {
       const url = m[1];
       const w = parseInt(m[2], 10);
@@ -83,7 +78,7 @@ function bestFromSrcset(srcset) {
   return best;
 }
 
-// Best URL from an <img> (supports lazy/srcset)
+// Best URL from an <img> (handles lazy/srcset)
 function bestImgUrl($img) {
   if (!$img || !$img.attr) return '';
   const srcset =
@@ -101,24 +96,20 @@ function bestImgUrl($img) {
   return normalizeUrl(url);
 }
 
-// Robust uploaded date extractor
-function extractUploaded($, html) {
-  let up =
-    clean($('.meta .post-date').first().text()) ||
-    clean($('.post-date').first().text()) ||
-    clean($('time.entry-date').first().text()) ||
-    clean($('time.published').first().text()) ||
-    clean($('.entry-meta time').first().text()) ||
-    clean($('.post-meta time').first().text()) ||
-    '';
 
-  if (!up) {
-    const m =
-      html.match(/<div\s+class=["']post-date["']>\s*([^<]+)\s*<\/div>/i) ||
-      html.match(/(?:Published|Posted|Uploaded)\s*:\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
-    if (m) up = clean(m[1]);
+// Extract a Steam store link if present
+function extractSteamLink($, html) {
+  // Prefer links inside article content
+  let href =
+    $('a[href*="store.steampowered.com"]').first().attr('href') ||
+    $('li:contains("Support the game") a[href*="store.steampowered.com"]').first().attr('href') ||
+    '';
+  if (!href) {
+    const m = html.match(/https?:\/\/store\.steampowered\.com\/[\w\-\/\?&=%#]+/i);
+    if (m) href = m[0];
   }
-  return up;
+  if (href && href.startsWith('//')) href = 'https:' + href;
+  return href || '';
 }
 
 // small concurrency helper
@@ -142,7 +133,7 @@ async function scrapeDetailSteamUnderground(url) {
 
   const title = clean($('h1.entry-title, h1.post-title').text());
 
-  // Poster only (screenshots removed)
+  // Poster only (no screenshots)
   let poster =
     bestImgUrl($('img.aligncenter').first()) ||
     bestImgUrl($('img.wp-post-image').first()) ||
@@ -152,8 +143,12 @@ async function scrapeDetailSteamUnderground(url) {
 
   const desc = clean($('div.entry-content p').first().text());
 
-  // Uploaded date
-  const uploaded = extractUploaded($, html);
+  // Uploaded date (from .post-date or common WP date selectors)
+  const uploaded =
+    clean($('.post-date').first().text()) ||
+    clean($('time.entry-date').first().text()) ||
+    clean($('.post-meta time').first().text()) ||
+    '';
   const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
 
   // Meta
@@ -171,6 +166,8 @@ async function scrapeDetailSteamUnderground(url) {
 
   const trailer =
     $('iframe[src*="youtube"], iframe[src*="streamable"]').attr('src') || '';
+
+  const steam = extractSteamLink($, html);
 
   const downloadLinks = [];
   $('a[href*="steamunderground.net/download"]').each((_, a) => {
@@ -194,10 +191,11 @@ async function scrapeDetailSteamUnderground(url) {
     gameVersion,
     crack,
     sysreq,
-    uploaded,      // e.g., "November 12, 2024"
-    uploadedText,  // e.g., "Uploaded: November 12, 2024"
+    uploaded,       // raw date text
+    uploadedText,   // "Uploaded: <date>"
     trailer,
-    downloadLinks
+    downloadLinks,
+    steam
   };
 }
 
@@ -213,16 +211,19 @@ async function scrapeSteamUndergroundSearch(q) {
   $('li.row-type').each((_, el) => {
     const $el = $(el);
     const href = $el.find('.post-c-wrap a').attr('href');
-    const img = bestImgUrl($el.find('.thumb img').first());
+
+    // Thumb for the card (not screenshots)
+    const $img = $el.find('.thumb img').first();
+    const img = bestImgUrl($img);
+
     const title = clean($el.find('.post-c-wrap a').text());
 
-    // Card-level uploaded date if present; backfilled from detail later
-    const uploadedCard =
-      clean($el.find('.meta .post-date').first().text()) ||
+    // Uploaded date if present on the card
+    const uploaded =
       clean($el.find('.post-date').first().text()) ||
       clean($el.find('time.entry-date').first().text()) ||
       '';
-    const uploadedText = uploadedCard ? `Uploaded: ${uploadedCard}` : '';
+    const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
 
     let tags = [];
     $el.find('.post-category a').each((_, a) => {
@@ -231,20 +232,10 @@ async function scrapeSteamUndergroundSearch(q) {
     });
     tags = tags.filter(t => t.toLowerCase() !== 'uncategorized');
 
-    if (href && title) {
-      items.push({
-        src: 'SteamUnderground',
-        title,
-        href,
-        img,
-        tags,
-        uploaded: uploadedCard,
-        uploadedText
-      });
-    }
+    if (href && title) items.push({ src: 'SteamUnderground', title, href, img, tags, uploaded, uploadedText });
   });
 
-  // Enrich meta + backfill uploaded from detail
+  // Enrich only meta (size/version/crack/uploaded fallback)
   await mapWithLimit(items, 3, async (it) => {
     try {
       const dhtml = await fetchWithCFBypass(it.href);
@@ -260,14 +251,21 @@ async function scrapeSteamUndergroundSearch(q) {
       if (v) { it.version = v; it.gameVersion = v; }
       if (c) it.crack = c;
 
+      const steam = extractSteamLink(d$, dhtml);
+      if (steam) it.steam = steam;
+
       if (!it.uploaded) {
-        const up = extractUploaded(d$, dhtml);
+        const up =
+          clean(d$('.post-date').first().text()) ||
+          clean(d$('time.entry-date').first().text()) ||
+          clean(d$('.post-meta time').first().text()) ||
+          '';
         if (up) {
           it.uploaded = up;
           it.uploadedText = `Uploaded: ${up}`;
         }
       }
-    } catch {}
+    } catch (_) {}
     return it;
   });
 
