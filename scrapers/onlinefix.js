@@ -47,59 +47,6 @@ function extractVersion($, html) {
 }
 
 
-function extractDownloadLinks($, baseUrl, fullHtml) {
-  const hostsRe = /(hosters\.online-fix\.me|drive\.online-fix\.me|uploads\.online-fix\.me|\/torrents\/|\.torrent$|^magnet:\?)/i;
-  let container = $('[itemprop="articleBody"]');
-  if (container.length === 0) {
-    container = $('.single-content, .entry-content, article, body');
-  }
-
-  const seen = new Set();
-  const out = [];
-
-  const pushLink = (label, href) => {
-    const link = absolutize(href, baseUrl);
-    if (!seen.has(link)) {
-      seen.add(link);
-      out.push({ label: (label || 'Download').trim(), link });
-    }
-  };
-
-  // 1) Zelené tlačidlá (kdekoľvek v article body)
-  container.find('a.btn-success[href]').each((_, a) => {
-    const href = $(a).attr('href');
-    const label = $(a).text();
-    if (href) pushLink(label, href);
-  });
-
-  // 2) Priame URL na známe hosty
-  container.find([
-    'a[href*="hosters.online-fix.me"]',
-    'a[href*="drive.online-fix.me"]',
-    'a[href*="uploads.online-fix.me"]',
-    'a[href*="/torrents/"]',
-    'a[href^="magnet:"]'
-  ].join(',')).each((_, a) => {
-    const href = $(a).attr('href');
-    const label = $(a).text();
-    if (href && hostsRe.test(href)) pushLink(label, href);
-  });
-
-  // 3) Posledný fallback: regex cez celé HTML (ak by Cheerio selektor zlyhal)
-  if (out.length === 0 && fullHtml) {
-    const re = /<a[^>]+href=(['"])([^'"]+)\1[^>]*>([\s\S]{1,200}?)<\/a>/gi;
-    let m;
-    while ((m = re.exec(fullHtml))) {
-      const href = m[2];
-      if (!hostsRe.test(href)) continue;
-      const rawLabel = m[3].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ');
-      pushLink(rawLabel, href);
-    }
-  }
-
-  return out;
-}
-
 async function scrapeDetailOnlineFix(url) {
 
   const html = await fetchRaw(url);
@@ -140,7 +87,7 @@ async function scrapeDetailOnlineFix(url) {
   const trailer =
     $('iframe[src*="youtube"], iframe[src*="streamable"]').attr('src') || '';
 
-  const downloadLinks = extractDownloadLinks($, url, html);
+  const downloadLinks = "None, not logged in, because, Alexíni Bombombíni Guzíni Pipilíni cant make it"
 
   const version = extractVersion($, html); // ← toto
 

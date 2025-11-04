@@ -442,6 +442,12 @@ body{
   z-index: 999;
   animation: fadeIn .15s ease;
 }
+.account-box * { pointer-events: auto; }
+
+/* Optional: prevent parent containers from making inputs unselectable */
+.account-box input, .account-box button {
+  user-select: text;
+}
 @keyframes fadeIn { from {opacity:0;transform:translateY(-4px);} to {opacity:1;transform:translateY(0);} }
 
 /* tabs */
@@ -472,13 +478,16 @@ body{
 }
 
 /* forms */
+/* forms */
 .account-form {
-  display:none;
+  display:flex;
   flex-direction:column;
   gap:10px;
 }
-.account-form.active {
-  display:flex;
+
+/* hide when the [hidden] attribute is present */
+.account-form[hidden] {
+  display:none !important;
 }
 
 /* inputs */
@@ -568,3 +577,22 @@ body{
   background:rgba(102,192,244,.15);
   outline:1px solid rgba(102,192,244,.3);
 }
+
+/* Context menu */
+.ctx-menu{
+  position:fixed; z-index:10000;
+  background:#0f1925;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:6px;
+  min-width:200px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  user-select:none;
+}
+.ctx-item{
+  padding:9px 12px; font-size:14px; line-height:1.2;
+  cursor:pointer; border-radius:8px;
+  color:#cfe2ff; display:flex; align-items:center; gap:8px;
+}
+.ctx-item:hover{ background:rgba(255,255,255,.08); color:#fff; }
+.ctx-sep{ height:1px; background:rgba(255,255,255,.08); margin:6px 4px; }
+.ctx-muted{ color:#8aa0b8; font-size:12px; padding:6px 10px 2px; }

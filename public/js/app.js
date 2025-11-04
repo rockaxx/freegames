@@ -7,6 +7,251 @@ let currentES = null;
 let activeSrcFilter = 'ALL';
 let onlineFixVersions = [];     // filled when OnlineFix cards arrive
 const loadedKeys = new Set();   // dedupe (href|src or title|src)
+// ===== FAVOURITES (localStorage) =====
+const FAV_KEY = 'kda_favs_v1';
+// ---- OF index persist (for Library page) ----
+const OF_LS_KEY = 'kda_ofindex_v1';
+
+// ---- STREAM MANAGEMENT (single active) ----
+let activeES = null;
+let currentSID = 0;
+
+function closeStream() {
+  if (activeES) {
+    activeES.close();
+    activeES = null;
+  }
+}
+
+function openSSE(url, { onItem, onItems, onDone } = {}) {
+  closeStream();
+  const sid = ++currentSID;
+  const withSid = url + (url.includes('?') ? '&' : '?') + 'sid=' + sid;
+
+  const es = new EventSource(withSid);
+  activeES = es;
+
+  es.addEventListener('item', ev => {
+    if (sid !== currentSID) return; // ignore stale events
+    try {
+      const payload = JSON.parse(ev.data);
+      if (payload && payload.item && onItem) onItem(payload.item);
+    } catch (_) {}
+  });
+
+  es.addEventListener('items', ev => {
+    if (sid !== currentSID) return;
+    try {
+      const payload = JSON.parse(ev.data);
+      if (payload && payload.items && onItems) onItems(payload.items, payload.source);
+    } catch (_) {}
+  });
+
+  es.addEventListener('done', _ => {
+    if (sid !== currentSID) return;
+    if (onDone) onDone();
+    closeStream();
+  });
+
+  es.addEventListener('error', _ => {
+    // network/server closed; just stop this stream
+    if (sid === currentSID) closeStream();
+  });
+
+  return es;
+}
+
+
+function saveOFIndexLS() {
+  const obj = {};
+  for (const [sv, v] of OFIndex.entries()) {
+    obj[sv] = {
+      url: v.url || '',
+      full: v.full || '',
+      title: v.title || '',
+      // keep a tiny OnlineFix item snapshot for modal usage in Library
+      item: v.item ? {
+        src: 'OnlineFix',
+        title: v.item.title || '',
+        href: v.item.href || v.url || '',
+        poster: v.item.poster || '',
+        img: v.item.poster || '',
+        version: v.item.version || v.full || ''
+      } : null
+    };
+  }
+  localStorage.setItem(OF_LS_KEY, JSON.stringify(obj));
+}
+
+function seedOFIndexFromLS() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(OF_LS_KEY) || '{}');
+    for (const [sv, meta] of Object.entries(raw)) {
+      OFIndex.set(sv.toLowerCase(), {
+        url: meta.url || '',
+        full: meta.full || '',
+        title: meta.title || '',
+        item: meta.item || null
+      });
+    }
+  } catch {}
+}
+seedOFIndexFromLS();
+
+function fav_load() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
+  catch { return []; }
+}
+function fav_save(list) { localStorage.setItem(FAV_KEY, JSON.stringify(list)); }
+
+function fav_key(it) {
+  const href = (it.href || it.link || it.detail || '').toLowerCase();
+  const title = (it.title || '').toLowerCase();
+  const src = (it.src || '').toLowerCase();
+  // Prefer unique href, else fallback title|src
+  return href || `${title}|${src}`;
+}
+
+function fav_is(it) {
+  const key = fav_key(it);
+  return fav_load().some(x => fav_key(x) === key);
+}
+
+function fav_add(itRaw) {
+  const it = sanitizeGameForFav(itRaw);
+  const list = fav_load();
+  const key = fav_key(it);
+  if (!list.some(x => fav_key(x) === key)) {
+    list.push(it);
+    fav_save(list);
+  }
+}
+
+function fav_remove(it) {
+  const key = fav_key(it);
+  const list = fav_load().filter(x => fav_key(x) !== key);
+  fav_save(list);
+}
+function sanitizeGameForFav(g) {
+  // ensure we keep original image (avoid nested /api/img)
+  const img = (g.img && g.img.startsWith('/api/img')) ? g.img : (g.poster || g.img || '');
+
+  // try find OF match now, so we persist overlay meta with the favourite
+  const of = matchOFForTitle(g.title);
+
+  return {
+    src: g.src || '',
+    title: g.title || '',
+    href: g.href || g.link || g.detail || '',
+    poster: img,
+    img: img,
+    tags: Array.isArray(g.tags) ? g.tags : (Array.isArray(g.genres) ? g.genres : []),
+    size: g.size || '',
+    year: g.year || '',
+    version: g.version || '',
+    releaseGroup: g.releaseGroup || '',
+    developer: g.developer || '',
+    publisher: g.publisher || '',
+    releaseDate: g.releaseDate || '',
+    reviews: g.reviews || '',
+    uploaded: g.uploaded || '',
+    desc: g.desc || '',
+    about: g.about || '',
+    screenshots: Array.isArray(g.screenshots) ? g.screenshots.slice(0, 12) : [],
+    trailer: g.trailer || '',
+    downloadLinks: Array.isArray(g.downloadLinks) ? g.downloadLinks : [],
+    steam: g.steam || '',
+
+    // persist OF meta for Library overlay
+    of: of ? {
+      short: of.short || '',
+      full: of.full || '',
+      url: of.url || '',
+      item: of.item ? {
+        src: 'OnlineFix',
+        title: of.item.title || '',
+        href: of.item.href || of.url || '',
+        poster: of.item.poster || '',
+        img: of.item.poster || '',
+        version: of.item.version || of.full || ''
+      } : null
+    } : null
+  };
+}
+
+// ===== CONTEXT MENU =====
+let __ctxMenuEl = null;
+
+function ctx_destroy() {
+  if (__ctxMenuEl) { __ctxMenuEl.remove(); __ctxMenuEl = null; }
+}
+
+function ctx_create(x, y, items = []) {
+  ctx_destroy();
+  const box = document.createElement('div');
+  box.className = 'ctx-menu';
+
+  items.forEach((it, idx) => {
+    if (it === 'sep') {
+      const sep = document.createElement('div'); sep.className = 'ctx-sep'; box.appendChild(sep);
+      return;
+    }
+    const a = document.createElement('div');
+    a.className = 'ctx-item';
+    a.textContent = it.label;
+    a.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ctx_destroy();
+      it.action?.();
+    });
+    box.appendChild(a);
+  });
+
+  // position
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rect = { w: 220, h: 160 };
+  let left = x, top = y;
+  if (left + rect.w > vw) left = vw - rect.w - 8;
+  if (top + rect.h > vh) top = vh - rect.h - 8;
+  box.style.left = left + 'px';
+  box.style.top  = top  + 'px';
+
+  document.body.appendChild(box);
+  __ctxMenuEl = box;
+}
+
+// Hide on click elsewhere / ESC
+document.addEventListener('click', () => ctx_destroy());
+document.addEventListener('contextmenu', e => {
+  // let browser menu work if not our card menu (we handle per-card)
+  if (__ctxMenuEl && !__ctxMenuEl.contains(e.target)) ctx_destroy();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ctx_destroy(); });
+
+// Build per-card context menu
+function showCardMenu(ev, game) {
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  const isFav = fav_is(game);
+  const menu = [];
+  menu.push({
+    label: isFav ? 'Remove from favourites' : 'Add to favourites',
+    action: () => isFav ? fav_remove(game) : fav_add(game)
+  });
+  menu.push('sep');
+  menu.push({
+    label: 'Open details',
+    action: () => openModal(game)
+  });
+  if (game.href) {
+    menu.push({
+      label: 'Open source in new tab',
+      action: () => window.open(game.href, '_blank', 'noopener')
+    });
+  }
+  ctx_create(ev.clientX, ev.clientY, menu);
+}
 
 function shortVersion(v) {
   // pick first up to 3 numeric segments, e.g. "0.37.5" from "0.37.5.0.18733"
@@ -53,19 +298,30 @@ function matchOFForTitle(title) {
   return null;
 }
 
-function createOFOverlay(ofMeta) {
+function createOFOverlay(ofMeta, preferImg) {
   const btn = document.createElement('button');
   btn.className = 'of-overlay';
   btn.title = ofMeta.full ? `Online-Fix ${ofMeta.full}` : 'Online-Fix';
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (ofMeta.item) openModal(ofMeta.item);
-    else if (ofMeta.url) window.open(ofMeta.url, '_blank');
+    if (ofMeta.item) {
+      const cardImg = preferImg || ofMeta.item?.img || ofMeta.item?.poster || '';
+      // otvor modal s OF detailom, ale s artom z tejto karty
+      openModal({
+        ...ofMeta.item,
+        src: 'OnlineFix',
+        img: cardImg,
+        poster: cardImg
+      });
+    } else if (ofMeta.url) {
+      window.open(ofMeta.url, '_blank', 'noopener');
+    }
   });
 
   return btn;
 }
+
 
 function retagExistingCardsWithOF() {
   const cards = document.querySelectorAll('#cardGrid .card');
@@ -73,13 +329,21 @@ function retagExistingCardsWithOF() {
     const title = card.querySelector('.card__title')?.textContent || '';
     const thumb = card.querySelector('.card__thumb');
     if (!thumb || !title) return;
+
     const of = matchOFForTitle(title);
     if (of && !thumb.querySelector('.of-overlay')) {
-      thumb.appendChild(createOFOverlay(of));
+      let preferImg = '';
+      const bg = thumb.style.backgroundImage;
+      if (bg) {
+        const m = bg.match(/url\(["']?(.*?)["']?\)/i);
+        if (m) preferImg = m[1];
+      }
+      thumb.appendChild(createOFOverlay(of, preferImg));
       console.log('[OFX][match]', of.short, '->', `"${title}"`);
     }
   });
 }
+
 
 function normalizeImg(src) {
   if (!src) return '';
@@ -145,6 +409,8 @@ document.getElementById('srcFilter').addEventListener('click', e => {
     card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
 });
+
+
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
 
@@ -152,15 +418,12 @@ function appendCards(list = []) {
     if (!g.img && g.poster) g.img = g.poster;
     g.img = normalizeImg(g.img);
 
-    // source badge class (zjednotené)
     let badgeClass = 'badge--good';
     if (!g.tags || !g.tags.length) badgeClass = 'badge--warn';
     const tag0 = g.tags && g.tags.length ? g.tags[0] : 'Not Categorized';
 
-    // OF match pre názov
     const of = matchOFForTitle(g.title);
-
-    const overlay = of ? createOFOverlay(of) : null;
+    const overlay = of ? createOFOverlay(of, g.img) : null;
 
     const thumb = el('div', {
       class: 'card__thumb',
@@ -169,7 +432,8 @@ function appendCards(list = []) {
 
     const card = el('article', {
       class: 'card',
-      onclick: () => openModal(g)
+      onclick: () => openModal(g),
+      oncontextmenu: (e) => showCardMenu(e, g)
     }, [
       thumb,
       el('div', { class: 'card__body' }, [
@@ -247,7 +511,7 @@ function renderCards(list = games) {
       style: g.img ? `background-image:url('${g.img}')` : ''
     }, overlay ? [overlay] : []);
 
-    const card = el('article', { class: 'card', onclick: () => openModal(g) }, [
+    const card = el('article', { class: 'card', onclick: () => openModal(g), oncontextmenu: (e) => showCardMenu(e, g) }, [
       thumb,
       el('div', { class: 'card__body' }, [
         el('h3', { class: 'card__title' }, g.title),
@@ -301,9 +565,9 @@ function openModal(game) {
   fields.forEach(([label, val]) => val && info.push(el('p', {}, `${label}: ${val}`)));
 
   if (game.steam)
-    info.push(el('p', {}, el('a', { href: game.steam, target: '_blank', rel: 'noopener' }, 'Steam stránka')));
+    info.push(el('p', {}, el('a', { href: game.steam, target: '_blank', rel: 'noopener' }, 'Steam page')));
   if (game.href)
-    info.push(el('p', {}, el('a', { href: game.href, target: '_blank', rel: 'noopener' }, 'Otvoriť detail')));
+    info.push(el('p', {}, el('a', { href: game.href, target: '_blank', rel: 'noopener' }, 'Open detail')));
 
   if (game.desc)
     info.push(el('p', { style: 'margin-top:10px;' }, game.desc));
@@ -399,7 +663,7 @@ function openModal(game) {
           target: '_blank',
           rel: 'noopener',
           class: 'modal__download'
-        }, (dl.label || new URL(dl.link).hostname))
+        }, ("Download from: "+(dl.label || new URL(dl.link).hostname)))
       );
       info.push(el('div', { class: 'modal__links' }, links));
     }
@@ -482,77 +746,48 @@ search.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   const q = search.value.trim();
 
-  // cancel previous stream if any
-  if (currentES) { currentES.close(); currentES = null; }
+  // kill any previous streams immediately
+  closeStream();
 
   if (!q) {
     loadFromScrape(); // fallback to default listing
     return;
   }
-  resetOFState();
+
   showSkeletons(100);
 
-  // Server-Sent Events stream
-  const url = `/api/search/stream?q=${encodeURIComponent(q)}`;
-  const es = new EventSource(url);
-  currentES = es;
-
-  const batches = [];
-  es.addEventListener('items', (ev) => {
-    try {
-      const payload = JSON.parse(ev.data);
-      const items = (payload.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
+  openSSE(`/api/search/stream?q=${encodeURIComponent(q)}`, {
+    onItem(item) {
+      const it = { id: Date.now() + Math.random(), ...item };
+      appendCards([it]); // your existing card adder
+    },
+    onItems(itemsPayload) {
+      const items = (itemsPayload || []).map((it, idx) => ({ id: idx + 1, ...it }));
       if (items.length) appendCards(items);
-      batches.push({ source: payload.source, count: items.length });
-    } catch (_) {}
-  });
-
-  // NEW: handle per-item events
-  es.addEventListener('item', (ev) => {
-    try {
-      const payload = JSON.parse(ev.data);
-      if (payload && payload.item) {
-        if (payload?.item?.src === 'OnlineFix') registerOF(payload.item); 
-        const item = { id: Date.now() + Math.random(), ...payload.item };
-        appendCards([item]);
+    },
+    onDone() {
+      hideSkeletons();
+      const grid = document.getElementById('cardGrid');
+      if (!grid.querySelector('.card:not(.skeleton)')) {
+        grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
       }
-    } catch (_) {}
-  });
-
-  es.addEventListener('error', (ev) => {
-    // network issue or server error — close and keep what we have
-    es.close();
-  });
-
-  es.addEventListener('done', (ev) => {
-    es.close();
-    currentES = null;
-    hideSkeletons();
-    const grid = document.getElementById('cardGrid');
-    const onlySk = grid.querySelectorAll('.card').length === grid.querySelectorAll('.card.skeleton').length;
-    if (onlySk) {
-      grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
     }
   });
 });
 
 
 async function loadFromScrape(){
-  resetOFState();
+  closeStream();            // stop any search stream
   showSkeletons(100);
 
-  const es = new EventSource('/api/all/stream');
-
-  es.addEventListener('item',ev=>{
-    const payload = JSON.parse(ev.data);
-    if (payload?.item?.src === 'OnlineFix') registerOF(payload.item);
-    const item = { id: Date.now()+Math.random(), ...payload.item };
-    appendCards([item]);
-  });
-
-  es.addEventListener('done',()=>{
-    hideSkeletons();
-    es.close();
+  openSSE('/api/all/stream', {
+    onItem(item) {
+      const it = { id: Date.now() + Math.random(), ...item };
+      appendCards([it]);
+    },
+    onDone() {
+      hideSkeletons();
+    }
   });
 }
 

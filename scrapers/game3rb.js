@@ -19,6 +19,75 @@ function fetchHtml(url) {
   });
 }
 
+function clean(s=''){ return s.replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(); }
+function normalizeUrl(u){ try{ return new URL(u).href; }catch{ return ''; } }
+
+// Pick the nearest meaningful context text BEFORE the <a id="download-link">.
+// We search a few likely places and score candidates.
+function pickContext($, $a){
+  const cands = [];
+
+  const add = (t)=>{ t = clean(t); if(t && !/^download$/i.test(t)) cands.push(t); };
+
+  const $d = $a.closest('div');
+
+  // very near
+  add($d.prev().text());
+  add($d.prev().find('strong').first().text());
+
+  // one level up
+  add($d.parent().prev().text());
+  add($d.parent().prev().find('strong').first().text());
+
+  // search upwards for the first preceding <strong>
+  const $strongUp = $a.parents().slice(0,4).map((i,el)=>$(el)).get()
+    .map($p => $p.prevAll('div').find('strong').first())
+    .find($s => $s && $s.length && clean($s.text()));
+  if ($strongUp && $strongUp.length) add($strongUp.text());
+
+  // broad: any previous strong in same column/group
+  const $prevStrong = $d.prevAll().find('strong').first();
+  add($prevStrong.text());
+
+  // choose the “best looking” context
+  const score = (s)=>{
+    let sc = 0;
+    if (/\[.*?\]/.test(s)) sc += 3;        // has [size] or brackets
+    if (/Part|Disc|Episode|Fix|V\d/i.test(s)) sc += 3;
+    if (/\b\d+(\.\d+)?\s*(MB|GB)\b/i.test(s)) sc += 2;
+    if (s.length <= 40) sc += 1;           // concise is nicer
+    return sc;
+  };
+
+  let best = '';
+  let bestScore = -1;
+  for (const t of cands){
+    const sc = score(t);
+    if (sc > bestScore){ bestScore = sc; best = t; }
+  }
+  return best;
+}
+
+function dedupeLinks(raw) {
+  const byUrl = new Map(); // url -> {link, label}
+  for (const it of raw) {
+    if (!it || !it.link) continue;
+    let href;
+    try { href = new URL(it.link).href; } catch { continue; }
+
+    const cur = byUrl.get(href);
+    if (!cur) {
+      byUrl.set(href, { link: href, label: it.label || 'Download' });
+    } else {
+      // Ak príde duplicitná URL s „bohatším“ labelom, ponechaj ten lepší
+      const better = (a, b) => (a || '').length >= (b || '').length ? a : b;
+      byUrl.set(href, { link: href, label: better(it.label, cur.label) });
+    }
+  }
+  return Array.from(byUrl.values());
+}
+
+
 async function scrapeDetail3rb(url) {
   const html = await fetchHtml(url);
   const $ = cheerio.load(html);
@@ -65,14 +134,20 @@ async function scrapeDetail3rb(url) {
     .trim();
 
   // ---- Download links ----
-  const downloadLinks = [];
+  const rawLinks = [];
   $('a#download-link').each((_, a) => {
-    const link = $(a).attr('href');
-    const label = $(a).closest('div').text().trim().replace(/\s+/g, ' ');
-    if (link && link.startsWith('http')) {
-      downloadLinks.push({ label, link });
-    }
+    const $a = $(a);
+    const href = normalizeUrl($a.attr('href') || '');
+    if (!href || !href.startsWith('http')) return;
+
+    // build: "Download - <context>"
+    const ctx = pickContext($, $a);               // e.g. "Part 1 To 10 [4 GB]" or "[Steam-Fix V3 ] [6 MB]"
+    const label = ctx ? `Download - ${ctx}` : 'Download';
+
+    rawLinks.push({ label, link: href });
   });
+
+  const downloadLinks = dedupeLinks(rawLinks);
 
   return {
     src: 'Game3RB',

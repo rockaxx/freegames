@@ -171,10 +171,18 @@ async function scrapeDetailSteamUnderground(url) {
   const steam = extractSteamLink($, html);
 
   const downloadLinks = [];
+  const seen = new Set();
+
   $('a[href*="steamunderground.net/download"]').each((_, a) => {
-    const href = normalizeUrl($(a).attr('href'));
+    const href = normalizeUrl($(a).attr('href') || '');
+    if (!href || !href.startsWith('http')) return;
+
+    const key = href.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+
     const label = clean($(a).text()) || 'Download';
-    if (href && href.startsWith('http')) downloadLinks.push({ label, link: href });
+    downloadLinks.push({ label, link: href });
   });
 
   return {

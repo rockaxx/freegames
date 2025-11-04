@@ -1,107 +1,124 @@
+// server.js
 const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape');
 const { createUser, getUser } = require('./database/query');
-const {registerSearchStream} = require('./api');
+const { registerSearchStream } = require('./api');
+
+const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth'); // <<< NEW
+const crypto = require('crypto');
 
 const app = express();
 registerSearchStream(app);
 const PORT = process.env.PORT || 4021;
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 app.disable('x-powered-by');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
+// Attach req.user if valid cookie present
+app.use((req, _res, next) => {
+  const cookies = parseCookies(req);
+  const tok = cookies.sid;
+  const payload = verifyToken(tok);
+  if (payload) req.user = { id: payload.id, username: payload.username, email: payload.email };
+  next();
+});
 
 const cache = new Map();
 const TTL_MS = 5 * 60 * 1000;
 
+// Image proxy unchanged
 app.get('/api/img', async (req,res) => {
   const url = req.query.url;
   if(!url) return res.status(400).end();
-
   try {
-    const r = await fetch(url, {
-      headers:{
-        'User-Agent':'Mozilla/5.0'
-      }
-    });
-
+    const r = await fetch(url, { headers:{ 'User-Agent':'Mozilla/5.0' } });
     res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
     const buf = Buffer.from(await r.arrayBuffer());
     res.send(buf);
-
   } catch(e) {
     res.status(500).end();
   }
 });
 
+// ==== AUTH (SECURE COOKIE SESSION) ====
 
-// === AUTH ===
-
+// POST /api/register  -> create user, auto-login (optional)
 app.post('/api/register', async (req,res) => {
   try {
-    const { username, email, password } = req.body;
-    if(!username || !email || !password) return res.status(400).json({error:"missing fields"});
+    const { username, email, password } = req.body || {};
+    if(!username || !email || !password) return res.status(400).json({ ok:false, error:'missing fields' });
 
-    // TODO: hash – teraz raw (neriešime)
+    // TODO: hash password before storing (bcrypt). For now raw (dev).
     const id = await createUser(username, email, password);
-    res.json({ ok:true, id });
+
+    const token = signToken({ id, username, email });
+    const cookie = buildCookie('sid', token, { secure: IS_PROD, sameSite: 'Lax', maxAgeSec: 60*60*24*7 });
+    res.setHeader('Set-Cookie', cookie);
+    return res.json({ ok:true, user:{ id, username, email } });
   } catch(e){
-    res.status(500).json({error:"register failed"});
+    return res.status(500).json({ ok:false, error:'register failed' });
   }
 });
 
+// POST /api/login  -> verify, set cookie
 app.post('/api/login', async (req,res) => {
   try {
-    const { username, password } = req.body;
-    if(!username || !password) return res.status(400).json({error:"missing fields"});
+    const { username, password } = req.body || {};
+    if(!username || !password) return res.status(400).json({ ok:false, error:'missing fields' });
 
     const user = await getUser(username);
-    if(!user) return res.status(401).json({error:"invalid"});
+    if(!user) return res.status(401).json({ ok:false, error:'invalid' });
 
-    // TODO hash compare – teraz raw equal
-    if(user.password !== password) return res.status(401).json({error:"invalid"});
+    // TODO: compare hashed; now raw
+    if(user.password !== password) return res.status(401).json({ ok:false, error:'invalid' });
 
-    res.json({ ok:true, user:{id:user.id, username:user.username, email:user.email} });
+    const token = signToken({ id: user.id, username: user.username, email: user.email });
+    const cookie = buildCookie('sid', token, { secure: IS_PROD, sameSite: 'Lax', maxAgeSec: 60*60*24*7 });
+    res.setHeader('Set-Cookie', cookie);
+    return res.json({ ok:true, user:{ id: user.id, username: user.username, email: user.email } });
   } catch(e){
-    res.status(500).json({error:"login failed"});
+    return res.status(500).json({ ok:false, error:'login failed' });
   }
 });
 
+// GET /api/me  -> current session
+app.get('/api/me', (req,res) => {
+  if(!req.user) return res.json({ ok:false });
+  return res.json({ ok:true, user: req.user });
+});
+
+// POST /api/logout -> clear cookie
+app.post('/api/logout', (_req,res) => {
+  // Overwrite cookie with empty, immediate expiry
+  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' + (IS_PROD ? '; Secure' : ''));
+  return res.json({ ok:true });
+});
+
+// ==== scraping routes stay as-is ====
 
 app.get('/api/scrape', async (req, res) => {
-
   try {
     const listUrl = (req.query.url || '').trim();
-
     if (!listUrl || !/^https?:\/\//i.test(listUrl)) {
       return res.status(400).json({ error: 'Chýba platný ?url=' });
     }
-
-    // voliteľná „allowlist“ proti SSRF – uprav podľa seba:
     const { hostname } = new URL(listUrl);
     const allow = new Set([
-      'ankergames.net',
-      'www.ankergames.net',
+      'ankergames.net','www.ankergames.net',
       'game3rb.com',
-      'repack-games.com',
-      'www.repack-games.com',
-      'steamunderground.net',
-      'www.steamunderground.net',
-      'online-fix.me',
-      'www.online-fix.me'
+      'repack-games.com','www.repack-games.com',
+      'steamunderground.net','www.steamunderground.net',
+      'online-fix.me','www.online-fix.me'
     ]);
-
-    if (!allow.has(hostname)) {
-      return res.status(403).json({ error: `Host ${hostname} nie je povolený.` });
-    }
+    if (!allow.has(hostname)) return res.status(403).json({ error: `Host ${hostname} nie je povolený.` });
 
     const now = Date.now();
     const cached = cache.get(listUrl);
-    if (cached && (now - cached.ts) < TTL_MS) {
-      return res.json(cached.data);
-    }
+    if (cached && (now - cached.ts) < TTL_MS) return res.json(cached.data);
 
     const data = await scrape(listUrl);
     cache.set(listUrl, { ts: now, data });
@@ -112,15 +129,21 @@ app.get('/api/scrape', async (req, res) => {
   }
 });
 
+
 app.get('/api/all/stream', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  if(res.flushHeaders) res.flushHeaders();
+  if (res.flushHeaders) res.flushHeaders();
 
-  const send = (event,payload)=>{
-    res.write('event: '+event+'\n');
-    res.write('data: '+JSON.stringify(payload)+'\n\n');
+  let alive = true;
+  req.on('close', () => { alive = false; });
+
+  const send = (event, payload) => {
+    if (!alive) return false;
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    return true;
   };
 
   const urls = [
@@ -131,19 +154,26 @@ app.get('/api/all/stream', async (req, res) => {
     'https://online-fix.me/'
   ];
 
-  for(const u of urls){
-    const r = await scrape(u);
-    const items = r.items || [];
-    for(const it of items){
-      send('item',{ item: { ...it } });
+  try {
+    for (const u of urls) {
+      if (!alive) break;
+      const r = await scrape(u);
+      const items = r.items || [];
+      for (const it of items) {
+        if (!alive) break;
+        if (!send('item', { item: { ...it } })) break;
+      }
     }
+  } catch (_) {
+    // ignore; client likely dropped
+  } finally {
+    if (alive) send('done', {});
+    res.end();
   }
-
-  send('done',{});
-  res.end();
 });
 
-// catch-all nechaj až na konci
+
+// Frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
