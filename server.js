@@ -1,10 +1,11 @@
 const express = require('express');
 const path = require('path');
 const { scrape } = require('./scrape');
-const { scrapeAnkerSearch, scrapeGame3rbSearch, scrapeRepackGamesSearch, scrapeSteamUndergroundSearch, scrapeOnlineFixFullSearch } = require('./search');
 const { createUser, getUser } = require('./database/query');
+const {registerSearchStream} = require('./api');
 
 const app = express();
+registerSearchStream(app);
 const PORT = process.env.PORT || 4021;
 
 app.disable('x-powered-by');
@@ -68,22 +69,6 @@ app.post('/api/login', async (req,res) => {
   }
 });
 
-
-app.get('/api/search', async (req,res)=>{
-  const q = req.query.q||"";
-  if(!q) return res.json({items:[]});
-
-  const [A, B, C, D, E] = await Promise.all([
-    scrapeAnkerSearch(q),
-    scrapeGame3rbSearch(q),
-    scrapeRepackGamesSearch(q),
-    scrapeSteamUndergroundSearch(q),
-    scrapeOnlineFixFullSearch(q)
-  ]);
-
-  res.json({ items: [...A, ...B, ...C, ...D, ...E] });
-
-});
 
 app.get('/api/scrape', async (req, res) => {
 

@@ -2,6 +2,77 @@
 const DEFAULT_SOURCE = '/api/all'; // URL listingu, čo chceš scrapovať
 const API_ENDPOINT = '';            // náš serverový endpoint
 
+// --- progressive search state ---
+let currentES = null;
+
+// Create N skeleton cards (shimmer placeholders)
+function showSkeletons(n = 100) {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+  const nodes = [];
+  for (let i = 0; i < n; i++) {
+    const card = el('article', { class: 'card skeleton' }, [
+      el('div', { class: 'card__thumb skeleton' }),
+      el('div', { class: 'card__body' }, [
+        el('h3', { class: 'card__title skeleton-line' }, ' '),
+        el('div', { class: 'card__meta' }, [
+          el('span', { class: 'skeleton-pill' }, ' '),
+          el('span', { class: 'skeleton-pill' }, ' ')
+        ])
+      ])
+    ]);
+    nodes.push(card);
+  }
+  nodes.forEach(n => grid.append(n));
+}
+
+function hideSkeletons() {
+  const grid = document.getElementById('cardGrid');
+  const skels = grid.querySelectorAll('.card.skeleton');
+  skels.forEach(s => s.remove());
+}
+
+// Append real cards without clearing the grid
+function appendCards(list = []) {
+  const grid = document.getElementById('cardGrid');
+  list.forEach(g => {
+    if(!g.img && g.poster) g.img = g.poster;
+    if (g.img) g.img = `/api/img?url=${encodeURIComponent(g.img)}`;
+
+    let badgeClass = 'badge--good';
+    if (g.src === 'Anker') badgeClass = 'badge--good';
+    else if (g.src === 'Game3RB') badgeClass = 'badge--good';
+    else if (g.src === 'RepackGames') badgeClass = 'badge--good';
+    else if (g.src === 'SteamUnderground') badgeClass = 'badge--good';
+    else if (g.src === 'OnlineFix') badgeClass = 'badge--good';
+
+    // determine tag text
+    let tag0 = g.tags && g.tags.length ? g.tags[0] : 'Not Categorized';
+
+    // override if tag missing
+    if (!g.tags || !g.tags.length) {
+      badgeClass = 'badge--warn';
+    }
+
+    const card = el('article', { class: 'card', onclick: () => openModal(g) }, [
+      el('div', { class: 'card__thumb', style: g.img ? `background-image:url('${g.img}')` : '' }),
+      el('div', { class: 'card__body' }, [
+        el('h3', { class: 'card__title' }, g.title),
+        el('div', { class: 'card__meta' }, [
+          el('span', {}, g.src || ''),
+          el('span', { class: 'badge ' + badgeClass }, tag0.substring(0, 16))
+        ])
+      ])
+    ]);
+
+    // replace one skeleton if present; otherwise append
+    const sk = grid.querySelector('.card.skeleton');
+    if (sk) sk.replaceWith(card);
+    else grid.append(card);
+  });
+}
+
+
 // --- DEMO fallback dataset (pôvodné) ---
 let games = [
   { id: 1, title: "Aknosom Hunt", tags: ["Action","RPG"], rating: "Veľmi kladné", price: "19,99 €" },
@@ -145,6 +216,7 @@ function openModal(game) {
         )
       );
     }
+  }
 
     if (game.trailer) {
       info.push(el('video', {
@@ -154,9 +226,12 @@ function openModal(game) {
       }));
     }
 
-    if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
+  if (Array.isArray(game.downloadLinks)) {
+    const validLinks = game.downloadLinks.filter(x => x && x.link && typeof x.link === 'string');
+
+    if (validLinks.length) {
       info.push(el('div', { class: 'modal__links' },
-        game.downloadLinks.map(dl => el('a', {
+        validLinks.map(dl => el('a', {
           href: dl.link,
           target: '_blank',
           rel: 'noopener',
@@ -165,6 +240,7 @@ function openModal(game) {
       ));
     }
   }
+
   // --- ŠPECIÁLNE LEN PRE RepackGames ---
   if (game.src === 'RepackGames') {
 
@@ -276,32 +352,63 @@ function attachEvents(){
 }
 
 const search = document.getElementById('searchInput');
-
-search.addEventListener('keydown', async (e) => {
+search.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   const q = search.value.trim();
+
+  // cancel previous stream if any
+  if (currentES) { currentES.close(); currentES = null; }
+
   if (!q) {
-    renderCards(games);
+    loadFromScrape(); // fallback to default listing
     return;
   }
-  showLoading('Vyhľadávam…');
 
-  try {
-    let data;
-    for (let i = 0; i < 6; i++) { // skúsi 6x (cca 3 sekundy celkovo)
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      data = await res.json();
-      if (Array.isArray(data.items) && data.items.length > 0) break;
-      await new Promise(r => setTimeout(r, 500)); // počkaj pol sekundy
-    }
+  showSkeletons(100);
 
-    const list = (data.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
-    renderCards(list);
-  } catch (e) {
-    console.warn('search fail', e);
-  } finally {
+  // Server-Sent Events stream
+  const url = `/api/search/stream?q=${encodeURIComponent(q)}`;
+  const es = new EventSource(url);
+  currentES = es;
+
+  const batches = [];
+  es.addEventListener('items', (ev) => {
+    try {
+      const payload = JSON.parse(ev.data);
+      const items = (payload.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
+      if (items.length) appendCards(items);
+      batches.push({ source: payload.source, count: items.length });
+    } catch (_) {}
+  });
+
+  // NEW: handle per-item events
+  es.addEventListener('item', (ev) => {
+    try {
+      const payload = JSON.parse(ev.data);
+      if (payload && payload.item) {
+        const item = { id: Date.now() + Math.random(), ...payload.item };
+        appendCards([item]);
+      }
+    } catch (_) {}
+  });
+
+  es.addEventListener('error', (ev) => {
+    // network issue or server error — close and keep what we have
+    es.close();
     hideLoading();
-  }
+  });
+
+  es.addEventListener('done', (ev) => {
+    hideLoading();
+    es.close();
+    currentES = null;
+    hideSkeletons();
+    const grid = document.getElementById('cardGrid');
+    const onlySk = grid.querySelectorAll('.card').length === grid.querySelectorAll('.card.skeleton').length;
+    if (onlySk) {
+      grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
+    }
+  });
 });
 
 

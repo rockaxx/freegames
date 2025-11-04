@@ -489,3 +489,26 @@ body{
 .account-form button.btn--primary:hover {
   filter:brightness(1.07);
 }
+
+/* Skeleton cards */
+.card.skeleton { position: relative; overflow: hidden; }
+.card.skeleton .card__thumb { height: 160px; background: #1f2937; }
+.skeleton-line { height: 14px; width: 70%; margin: 10px 0; background: #1f2937; border-radius: 6px; }
+.skeleton-pill { display:inline-block; height: 20px; min-width: 70px; margin-right: 6px; border-radius: 999px; background: #1f2937; }
+
+/* shimmer */
+.card.skeleton::after,
+.card__thumb.skeleton::after,
+.skeleton-line::after,
+.skeleton-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shimmer 1.4s infinite;
+  pointer-events: none;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
