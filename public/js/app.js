@@ -4,6 +4,7 @@ const API_ENDPOINT = '';            // náš serverový endpoint
 
 // --- progressive search state ---
 let currentES = null;
+let activeSrcFilter = 'ALL';
 
 // Create N skeleton cards (shimmer placeholders)
 function showSkeletons(n = 100) {
@@ -31,11 +32,28 @@ function hideSkeletons() {
   const skels = grid.querySelectorAll('.card.skeleton');
   skels.forEach(s => s.remove());
 }
+document.getElementById('srcFilter').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  activeSrcFilter = btn.dataset.src;
+
+  // HIDE/SHOW existujúcich kariet
+  const cards = document.querySelectorAll('#cardGrid .card:not(.skeleton)');
+  cards.forEach(card => {
+    const src = card.querySelector('.card__meta span')?.textContent.trim();
+    if (activeSrcFilter === 'ALL' || src === activeSrcFilter) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+});
 
 // Append real cards without clearing the grid
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
   list.forEach(g => {
+    const shouldShow = (activeSrcFilter === 'ALL' || g.src === activeSrcFilter);
     if(!g.img && g.poster) g.img = g.poster;
     if (g.img) g.img = `/api/img?url=${encodeURIComponent(g.img)}`;
 
@@ -54,7 +72,7 @@ function appendCards(list = []) {
       badgeClass = 'badge--warn';
     }
 
-    const card = el('article', { class: 'card', onclick: () => openModal(g) }, [
+    const card = el('article', { class: 'card', onclick: () => openModal(g), style: shouldShow ? '' : 'display:none;' }, [
       el('div', { class: 'card__thumb', style: g.img ? `background-image:url('${g.img}')` : '' }),
       el('div', { class: 'card__body' }, [
         el('h3', { class: 'card__title' }, g.title),

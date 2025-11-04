@@ -70,7 +70,10 @@ async function scrapeDetailOnlineFix(url) {
 
   const $ = cheerio.load(html, { decodeEntities: false });
 
-  const title = $('h1.title, h2.title').first().text().trim();
+  const title =
+    $('#news-title').text().trim() ||
+    $('h1.title, h2.title').first().text().trim();
+
 
   const poster =
     $('div.image img[data-src]').attr('data-src') ||
@@ -122,7 +125,10 @@ async function scrapeOnlineFixSearch(q) {
     const $el = $(el);
     const a = $el.find('a.big-link');
     const href = a.attr('href') || '';
-    const title = $el.find('h2.title').text().trim();
+    const title =
+      $el.find('h2.title').text().trim() ||
+      $el.find('a.big-link').text().trim();
+
     const img =
       $el.find('div.image img[data-src]').attr('data-src') ||
       $el.find('div.image img').attr('src') || '';
