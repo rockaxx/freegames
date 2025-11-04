@@ -828,6 +828,13 @@ body{
   background:rgba(102,192,244,.15);
   outline:1px solid rgba(102,192,244,.3);
 }
+.src-filter.disabled {
+  opacity: .35;
+  pointer-events: none;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
 
 /* Context menu */
 .ctx-menu{

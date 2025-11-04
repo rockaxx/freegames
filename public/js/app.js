@@ -2,6 +2,7 @@
 // ----- HELPERS -----
 const DEFAULT_SOURCE = '/api/all'; // URL listingu, čo chceš scrapovať
 const API_ENDPOINT = '';            // náš serverový endpoint
+let filterLocked = false;
 
 // --- progressive search state ---
 let currentES = null;
@@ -549,6 +550,8 @@ function hideSkeletons() {
   skels.forEach(s => s.remove());
 }
 document.getElementById('srcFilter').addEventListener('click', e => {
+  if (filterLocked) return;
+
   const btn = e.target.closest('button');
   if (!btn) return;
 
@@ -565,10 +568,13 @@ document.getElementById('srcFilter').addEventListener('click', e => {
     card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
 });
+
+
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
 
   list.forEach(g => {
+
     if (!g.img && g.poster) g.img = g.poster;
     g.img = normalizeImg(g.img);
 
@@ -637,6 +643,8 @@ function el(tag, attrs={}, children=[]) {
   children.forEach(c => node.append(c));
   return node;
 }
+
+
 function renderCards(list = games) {
   const grid = document.getElementById('cardGrid');
   grid.innerHTML = '';
@@ -915,6 +923,8 @@ search.addEventListener('keydown', (e) => {
   }
 
   showSkeletons(100);
+  filterLocked = true;
+  document.getElementById('srcFilter').classList.add('disabled');
 
   openSSE(`/api/search/stream?q=${encodeURIComponent(q)}`, {
     onItem(item) {
@@ -937,6 +947,9 @@ search.addEventListener('keydown', (e) => {
 
     onDone() {
       hideSkeletons();
+      filterLocked = false;
+      document.getElementById('srcFilter').classList.remove('disabled');
+
       const grid = document.getElementById('cardGrid');
       if (!grid.querySelector('.card:not(.skeleton)')) {
         grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
@@ -948,23 +961,30 @@ search.addEventListener('keydown', (e) => {
 
 
 async function loadFromScrape(){
-  closeStream();            // stop any search stream
+  closeStream();
   showSkeletons(100);
+  filterLocked = true;
+  document.getElementById('srcFilter').classList.add('disabled');
 
   openSSE('/api/all/stream', {
     onItem(item) {
-      if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item); // keep
+      if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item);
       const it = { id: Date.now() + Math.random(), ...item };
       appendCards([it]);
     },
     onItems(itemsPayload) {
       const items = (itemsPayload || []).map((it, idx) => ({ id: idx + 1, ...it }));
-      items.forEach(it => { if (it.src === 'OnlineFix' && (it.version || it.build)) registerOF(it); });
+      items.forEach(it => {
+        if (it.src === 'OnlineFix' && (it.version || it.build)) registerOF(it);
+      });
       if (items.length) appendCards(items);
+    },
+    onDone() {
+      hideSkeletons();
+      filterLocked = false;
+      document.getElementById('srcFilter').classList.remove('disabled');
     }
   });
-
-
 }
 
 
@@ -1026,6 +1046,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     closeStream();
     showSkeletons(100);
+    filterLocked = true;
+    document.getElementById('srcFilter').classList.add('disabled');
 
     openSSE(`/api/search/stream?q=${encodeURIComponent(initialQuery)}`, {
       onItem(item) {
@@ -1042,6 +1064,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       },
       onDone() {
         hideSkeletons();
+        filterLocked = false;
+        document.getElementById('srcFilter').classList.remove('disabled');
+
         const grid = document.getElementById('cardGrid');
         if (!grid.querySelector('.card:not(.skeleton)')) {
           grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
