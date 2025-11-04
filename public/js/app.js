@@ -35,17 +35,18 @@ function hideSkeletons() {
 document.getElementById('srcFilter').addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
+
   activeSrcFilter = btn.dataset.src;
+
+  // highlight active
+  document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
 
   // HIDE/SHOW existujúcich kariet
   const cards = document.querySelectorAll('#cardGrid .card:not(.skeleton)');
   cards.forEach(card => {
     const src = card.querySelector('.card__meta span')?.textContent.trim();
-    if (activeSrcFilter === 'ALL' || src === activeSrcFilter) {
-      card.style.display = '';
-    } else {
-      card.style.display = 'none';
-    }
+    card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
 });
 

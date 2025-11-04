@@ -512,3 +512,34 @@ body{
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
+.src-filter{
+  display:flex;
+  gap:8px;
+  background:rgba(255,255,255,.04);
+  padding:6px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.src-filter button{
+  background:transparent;
+  color:var(--muted);
+  border:0;
+  padding:6px 10px;
+  font-weight:600;
+  font-size:12px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+
+.src-filter button:hover{
+  color:#fff;
+  background:rgba(255,255,255,.08);
+}
+
+.src-filter button.active{
+  color:#fff;
+  background:rgba(102,192,244,.15);
+  outline:1px solid rgba(102,192,244,.3);
+}
