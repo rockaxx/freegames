@@ -1,95 +1,277 @@
 // steamunderground.js
+// Clean detail + search scraper for steamunderground.net
+// - Extracts poster, meta, and robust "Uploaded" date
+// - No screenshots (per user's request)
+// - English-only comments
+
 const cheerio = require('cheerio');
 const { fetchWithCFBypass } = require('./cloudflare');
+
+// ---------- helpers ----------
+const clean = (t) => (t || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+
+const normalizeUrl = (u) => {
+  if (!u) return '';
+  if (u.startsWith('//')) return 'https:' + u;
+  return u;
+};
+
+function extractGameVersion($, html) {
+  let v =
+    clean($('div.gameVersion .gameVersionValue').text()) ||
+    clean($('.gameVersionValue').text()) ||
+    clean($('.gameVersion').text().replace(/^\s*Game Version:\s*/i, ''));
+  if (!v) {
+    const m = html.match(/Game\s*Version:\s*([^<\n]+)/i);
+    if (m) v = clean(m[1]);
+  }
+  return v || '';
+}
+
+function extractCrack($, html) {
+  let c = clean($('div.releaseGroup .releaseGroupValue').text());
+  if (!c) {
+    const m =
+      html.match(/Game\s*Source\s*\/\s*Scene\s*Group:\s*([^<\n]+)/i) ||
+      html.match(/Release\s*Group:\s*([^<\n]+)/i) ||
+      html.match(/Crack\s*:\s*([^<\n]+)/i);
+    if (m) c = clean(m[1]);
+  }
+  return c || '';
+}
+
+function extractSysreq($) {
+  const out = {};
+  // <li><strong>Key:</strong> Value</li>
+  $('.article-wrap li strong, .post-content li strong, .entry-content li strong, li strong').each((_, el) => {
+    const key = clean($(el).text()).replace(/:$/, '');
+    const full = clean($(el).parent().text());
+    const val = clean(full.replace($(el).text(), '').replace(/^:/, ''));
+    if (key && val) out[key] = val;
+  });
+  // <dt>Key</dt><dd>Value</dd>
+  $('.article-wrap dt, .post-content dt, .entry-content dt, dt').each((_, el) => {
+    const key = clean($(el).text()).replace(/:$/, '');
+    const val = clean($(el).next('dd').text());
+    if (key && val) out[key] = val;
+  });
+  return out;
+}
+
+function pickStorage(sysreq, html) {
+  if (sysreq && sysreq.Storage) return clean(sysreq.Storage);
+  const m = html.match(/Storage\s*:\s*([^\n<]+)/i);
+  return m ? clean(m[1]) : '';
+}
+
+// Parse srcset -> return largest URL
+function bestFromSrcset(srcset) {
+  if (!srcset) return '';
+  let best = '', bestW = -1;
+  for (const part of srcset.split(',')) {
+    const seg = part.trim();
+    if (!seg) continue;
+    const m = seg.match(/(\S+)\s+(\d+)w/i);
+    if (m) {
+      const url = m[1];
+      const w = parseInt(m[2], 10);
+      if (w > bestW) { bestW = w; best = url; }
+    } else {
+      if (!best && /^https?:\/\//i.test(seg)) best = seg.split(/\s+/)[0];
+    }
+  }
+  return best;
+}
+
+// Best URL from an <img> (supports lazy/srcset)
+function bestImgUrl($img) {
+  if (!$img || !$img.attr) return '';
+  const srcset =
+    $img.attr('data-lazy-srcset') ||
+    $img.attr('data-srcset') ||
+    $img.attr('srcset') || '';
+  const fromSet = bestFromSrcset(srcset);
+  if (fromSet) return normalizeUrl(fromSet);
+
+  let url =
+    $img.attr('data-lazy-src') ||
+    $img.attr('data-src') ||
+    $img.attr('src') ||
+    '';
+  return normalizeUrl(url);
+}
+
+// Robust uploaded date extractor
+function extractUploaded($, html) {
+  let up =
+    clean($('.meta .post-date').first().text()) ||
+    clean($('.post-date').first().text()) ||
+    clean($('time.entry-date').first().text()) ||
+    clean($('time.published').first().text()) ||
+    clean($('.entry-meta time').first().text()) ||
+    clean($('.post-meta time').first().text()) ||
+    '';
+
+  if (!up) {
+    const m =
+      html.match(/<div\s+class=["']post-date["']>\s*([^<]+)\s*<\/div>/i) ||
+      html.match(/(?:Published|Posted|Uploaded)\s*:\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+    if (m) up = clean(m[1]);
+  }
+  return up;
+}
+
+// small concurrency helper
+async function mapWithLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      out[idx] = await fn(items[idx], idx);
+    }
+  }
+  await Promise.all(Array(Math.min(limit, items.length)).fill(0).map(worker));
+  return out;
+}
 
 // ---------- DETAIL ----------
 async function scrapeDetailSteamUnderground(url) {
   const html = await fetchWithCFBypass(url);
   const $ = cheerio.load(html);
 
-  const title = $('h1.entry-title, h1.post-title').text().trim();
-  const poster =
-    $('img.aligncenter').attr('src') ||
-    $('img.wp-post-image').attr('src') ||
-    $('div.entry-content img').first().attr('src') || '';
-  const desc = $('div.entry-content p').first().text().trim();
+  const title = clean($('h1.entry-title, h1.post-title').text());
 
-  const size = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(html)?.[1] || '';
+  // Poster only (screenshots removed)
+  let poster =
+    bestImgUrl($('img.aligncenter').first()) ||
+    bestImgUrl($('img.wp-post-image').first()) ||
+    bestImgUrl($('div.entry-content img').first()) ||
+    '';
+  poster = normalizeUrl(poster);
+
+  const desc = clean($('div.entry-content p').first().text());
+
+  // Uploaded date
+  const uploaded = extractUploaded($, html);
+  const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
+
+  // Meta
+  const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(html)?.[1] || '';
   const genre = /Genre:\s*([A-Za-z ,]+)/i.exec(html)?.[1]?.trim() || '';
   const developer = /Developer:\s*([^<\n]+)/i.exec(html)?.[1]?.trim() || '';
   const publisher = /Publisher:\s*([^<\n]+)/i.exec(html)?.[1]?.trim() || '';
   const releaseDate = /Release Date:\s*([^<\n]+)/i.exec(html)?.[1]?.trim() || '';
 
-  const screenshots = [];
-  $('figure img, .wp-block-gallery img').each((_, el) => {
-    const src = $(el).attr('src');
-    if (src) screenshots.push(src);
-  });
+  const gameVersion = extractGameVersion($, html);
+  const crack = extractCrack($, html);
+  const sysreq = extractSysreq($);
+  const storage = pickStorage(sysreq, html);
+  const finalSize = sizeRx || storage || '';
 
-  const trailer = $('iframe[src*="youtube"], iframe[src*="streamable"]').attr('src') || '';
+  const trailer =
+    $('iframe[src*="youtube"], iframe[src*="streamable"]').attr('src') || '';
 
   const downloadLinks = [];
   $('a[href*="steamunderground.net/download"]').each((_, a) => {
-    const href = $(a).attr('href');
-    const label = $(a).text().trim() || 'Download';
+    const href = normalizeUrl($(a).attr('href'));
+    const label = clean($(a).text()) || 'Download';
     if (href && href.startsWith('http')) downloadLinks.push({ label, link: href });
   });
 
   return {
     src: 'SteamUnderground',
     title,
+    href: url,
     poster,
     desc,
-    size,
+    size: finalSize,
     genre,
     developer,
     publisher,
     releaseDate,
-    screenshots,
+    version: gameVersion,
+    gameVersion,
+    crack,
+    sysreq,
+    uploaded,      // e.g., "November 12, 2024"
+    uploadedText,  // e.g., "Uploaded: November 12, 2024"
     trailer,
-    downloadLinks,
-    href: url
+    downloadLinks
   };
 }
 
 // ---------- SEARCH ----------
 async function scrapeSteamUndergroundSearch(q) {
   const url = `https://steamunderground.net/?s=${encodeURIComponent(q)}`;
-  console.log('[SteamUnderground] Loading:', url);
-
   const html = await fetchWithCFBypass(url);
   if (!html) return [];
 
   const $ = cheerio.load(html);
-  const results = [];
+  const items = [];
 
   $('li.row-type').each((_, el) => {
     const $el = $(el);
-    const title = $el.find('.post-c-wrap a').text().trim();
     const href = $el.find('.post-c-wrap a').attr('href');
-    const img =
-      $el.find('.thumb img[data-src]').attr('data-src') ||
-      $el.find('.thumb img').attr('src') || '';
+    const img = bestImgUrl($el.find('.thumb img').first());
+    const title = clean($el.find('.post-c-wrap a').text());
 
-    const tags = [];
+    // Card-level uploaded date if present; backfilled from detail later
+    const uploadedCard =
+      clean($el.find('.meta .post-date').first().text()) ||
+      clean($el.find('.post-date').first().text()) ||
+      clean($el.find('time.entry-date').first().text()) ||
+      '';
+    const uploadedText = uploadedCard ? `Uploaded: ${uploadedCard}` : '';
+
+    let tags = [];
     $el.find('.post-category a').each((_, a) => {
-      const tag = $(a).text().trim();
+      const tag = clean($(a).text());
       if (tag) tags.push(tag);
     });
+    tags = tags.filter(t => t.toLowerCase() !== 'uncategorized');
 
     if (href && title) {
-      results.push({
+      items.push({
         src: 'SteamUnderground',
         title,
         href,
         img,
-        tags
+        tags,
+        uploaded: uploadedCard,
+        uploadedText
       });
     }
   });
 
-  console.log(`[SteamUnderground] Found ${results.length} results.`);
-  return results;
+  // Enrich meta + backfill uploaded from detail
+  await mapWithLimit(items, 3, async (it) => {
+    try {
+      const dhtml = await fetchWithCFBypass(it.href);
+      const d$ = cheerio.load(dhtml);
+
+      const v = extractGameVersion(d$, dhtml);
+      const c = extractCrack(d$, dhtml);
+      const sys = extractSysreq(d$);
+      const storage = pickStorage(sys, dhtml);
+      const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(dhtml)?.[1] || '';
+      const finalSize = sizeRx || storage || '';
+      if (finalSize) it.size = finalSize;
+      if (v) { it.version = v; it.gameVersion = v; }
+      if (c) it.crack = c;
+
+      if (!it.uploaded) {
+        const up = extractUploaded(d$, dhtml);
+        if (up) {
+          it.uploaded = up;
+          it.uploadedText = `Uploaded: ${up}`;
+        }
+      }
+    } catch {}
+    return it;
+  });
+
+  return items;
 }
 
 module.exports = { scrapeSteamUndergroundSearch, scrapeDetailSteamUnderground };

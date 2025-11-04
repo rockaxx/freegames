@@ -120,6 +120,7 @@ function openModal(game) {
     ['Publisher', game.publisher],
     ['Dátum vydania', game.releaseDate],
     ['Recenzie', game.reviews],
+    ['Uploaded', game.uploaded],
   ];
   fields.forEach(([label, val]) => val && info.push(el('p', {}, `${label}: ${val}`)));
 
