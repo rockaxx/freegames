@@ -23,7 +23,6 @@ async function scrapeDetail3rb(url) {
   const html = await fetchHtml(url);
   const $ = cheerio.load(html);
 
-  // ---- Title a základné info ----
   const title = $('h1.post-title, h3.entry-title').first().text().trim();
   const poster =
     $('img.entry-image').attr('src') ||
@@ -31,7 +30,6 @@ async function scrapeDetail3rb(url) {
     $('img[fetchpriority="high"]').attr('src') ||
     '';
 
-  // ---- Hlavný blok detailov (Game Details) ----
   const detailsText = $('div.summaryy').text().replace(/\s+/g, ' ').trim();
   const size = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(detailsText)?.[1] || '';
   const genreText = /Genre:\s*([^]+?)\s*(?:Developer|Publisher|Release|ALL|$)/i.exec(detailsText)?.[1]?.trim() || '';
@@ -103,7 +101,6 @@ function parseGame3rb(html, base) {
   $('article.post-hentry').each((_, el) => {
     const $el = $(el);
 
-    // ak je vnútri viac než 1 h3, je to bordel sekcia -> preskoč
     if ($el.find('h3.entry-title').length !== 1) return;
 
     const $a = $el.find('h3.entry-title a').first();

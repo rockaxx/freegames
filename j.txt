@@ -1,0 +1,1043 @@
+
+C:\Users\Alex\Desktop\steam-like-template>node server
+[steam-like-template] running on http://localhost:4021
+[RepackGames] Načítaných položiek: 51
+[RepackGames] Načítaných položiek: 51
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="yandex-verification" content="c31b21a1971fc90a" />
+<link rel="image_src" type="image/png" href="/uploads/pictures/logo1.png">
+
+<link rel="dns-prefetch" href="//botradar.tech" crossorigin="anonymous">
+<link rel="dns-prefetch" href="//www.youtube.com" crossorigin="anonymous">
+<link rel="dns-prefetch" href="//translate.google.com" crossorigin="anonymous">
+<link rel="dns-prefetch" href="//www.gravatar.com" crossorigin="anonymous">
+<link rel="dns-prefetch" href="//tds.mediapays.info" crossorigin="anonymous">
+<link rel="dns-prefetch" href="//cdn.jsdelivr.net" crossorigin="anonymous">
+
+<link rel="preload" href="/templates/FixLand/font/font-awesome/fonts/fontawesome-webfont.woff2?v=4.7.0" as="font" crossorigin="anonymous">
+<link rel="preload" href="/templates/FixLand/font/cuprum-v8-cyrillic-regular.woff2" as="font" crossorigin="anonymous">
+<link rel="preload" href="/templates/FixLand/font/cuprum-v8-cyrillic-700.woff2" as="font" crossorigin="anonymous">
+
+<link rel="preload" as="style" href="/templates/FixLand/css/main.css?1271" crossorigin="anonymous">
+<link rel="preload" as="style" href="/templates/FixLand/font/font-awesome/css/font-awesome.min.css" crossorigin="anonymous">
+<link rel="preload" as="script" href="/templates/FixLand/js/lazysizes.min.js" crossorigin="anonymous">
+
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1251" />
+<title>Статьи на тему: beamng</title>
+<meta name="description" content="beamng Помощь с запуском сетевых игр онлайн. Фиксы, как правильно подключаться, создавать сервер, создавать игру через локальную сеть." />
+<meta name="keywords" content="создавать, beamng, Помощь, запуском, сетевых, онлайн, Фиксы, правильно, подключаться, сервер, через, локальную" />
+<meta name="generator" content="DataLife Engine (http://dle-news.ru)" />
+
+<link rel="search" type="application/opensearchdescription+xml" href="https://online-fix.me/engine/opensearch.php?v3" title="Online-Fix - Запуск игр по сети">
+<link rel="alternate" type="application/rss+xml" title="Online-Fix - Запуск игр по сети" href="https://online-fix.me/rss.xml" />
+
+
+
+
+<link rel="stylesheet" href="/templates/FixLand/css/main.css?1271" crossorigin="anonymous">
+<link rel="stylesheet" href="/templates/FixLand/font/font-awesome/css/font-awesome.min.css" crossorigin="anonymous">
+
+<link rel="stylesheet" type="text/css" href="/templates/FixLand/slick/slick.css" crossorigin="anonymous">
+
+<script async src="/templates/FixLand/js/lazysizes.min.js" crossorigin="anonymous"></script>
+<script>
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({pageLanguage: 'ru'}, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" defer></script>
+
+<style>
+.wide-block {
+        margin-left: 0;
+        margin-right: 0;
+}
+
+.categories-block {
+        padding-top: 5px;
+        display: flex;
+        flex-wrap: wrap;
+}
+
+.categories-block a {
+        width: 50%;
+        padding: 10px;
+        box-sizing: border-box;
+}
+
+.categories-block a:hover {
+        color: #1EA7E0;
+        background: #333;
+}
+
+.game-rating {
+        width: 100%;
+        background-color: #151515;
+        box-shadow: none;
+        padding: 10px 5px;
+        box-sizing: border-box;
+}
+
+.games-cont {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.games-cont h3 {
+    font-size: 1.1em;
+}
+
+.games-cont a:hover > h3 {
+    color: #1EA7E0;
+}
+
+.games-cont a:hover img {
+    transform: scale(1.02);
+}
+
+.game-rating a {
+    display: block;
+    float: none;
+    position: relative;
+    margin: 5px;
+    width: 185px;
+    height: auto;
+    color: #a9a9a9;
+}
+
+.game-rating a:nth-child(5),
+.game-rating a:nth-child(9) {
+    margin-right: 5px;
+}
+
+.game-rating > .title {
+    width: 100%;
+    margin-left: 0;
+    padding: 5px 0 10px 5px;
+    color: #1EA7E0;
+    position: relative;
+    text-transform: uppercase;
+}
+
+.game-rating a img {
+    transition: .2s all;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+
+.center-ban iframe {
+    margin: 0 auto;
+}
+
+.img-resp img {
+        max-width: 100% !important;
+}
+
+</style>
+
+
+
+<script type="text/javascript" src="data:text/javascript;base64,KGZ1bmN0aW9uKCl7d2luZG93LkszPXdpbmRvdy5LM3x8e307SzMuVT1LMy5VfHx7fTtLMy5VLmE9ZnVuY3Rpb24oKXt2YXIgYT1uZXcgRGF0ZTthPU1hdGguZmxvb3IoKG5ldyBEYXRlKGEuZ2V0RnVsbFllYXIoKSsyLGEuZ2V0TW9udGgoKSxhLmdldERhdGUoKSkpLnNldFVUQ0hvdXJzKDAsMCwwLDApLzFFMyk7YT1wYXJzZUludCgxRTEyKihNYXRoLnNpbihhKSsxKSkudG9TdHJpbmcoMzIpO2Zvcih2YXIgYj1bInJ1Il0sZD1bXSxjPTA7YzxiLmxlbmd0aDsrK2MpZC5wdXNoKHtkb21haW46YSsiLiIrYltjXSxuYW1lOmF9KTtyZXR1cm4gZH07SzMuVS5iPWZ1bmN0aW9uKGEpe3ZhciBiPUszLlUuYSgpO3NldFRpbWVvdXQoYSwwLGJbMF0pfX0pKCk7"></script>
+
+
+
+</head>
+
+<body data-tooltip="1">
+  <div class="dark-theme" id="moon-trigger"></div>
+
+  <div class="header-pic" style="background-color: #00070f; background-image: url('/uploads/posts/2020-05/1589538979_431893.jpg'); background-repeat: no-repeat; background-attachment: fixed; background-size: cover;"></div>
+
+
+  <header class="header" style="position: relative;">
+    <div style="float: right; margin-top: 4px;" id="google_translate_element"></div>
+        <div class="top-panel-wrapper">
+                <div class="top-panel clr">
+                        <a class="logo-panel" href="/">
+                <!-- /images/logo1.png -->
+                                <img class="logo duration05" src="/templates/FixLand/images/oflogo.gif" height="144"
+                                        title="Online Fix - Помощь в играх по сети" alt="">
+                        </a>
+
+                        <div class="logo-name left clr"><a href="/">Online Fix</a></div>
+
+                        <form action="/index.php" name="searchform" class="search-panel searchform left clr" method="GET">
+                                <input type="hidden" name="do" value="search">
+                                <input type="hidden" name="subaction" value="search">
+                                <input class="bar duration05 header-input" autocomplete="off" id="story" name="story" type="text" min="3" required>
+                                <input class="search-btn left" type="submit" value="&#xf002;"/>
+
+                        </form>
+                        <div class="user-panel right clr">
+
+<form class="login-form" id="login-form" method="post" >
+    <div class="main-form">
+                <input title="Имя пользователя" class="header-input" type="text" name="login_name" placeholder="Логин" required>
+                <input title="Пароль" class="header-input" type="password" name="login_password" placeholder="Пароль" required>
+                <input name="login" type="hidden" id="login" value="submit">
+    <!--    <input class="btn btn-success" type="submit" value="Вход"> /-->
+        <button class="btn btn-success" onclick="dologin(); return false">Вход</button>
+        <button class="btn btn-default" onclick="fast_reg(); return false">Регистрация</button>
+
+    </div>
+    <div class="slide-form clr">
+        <div class="social-login left">
+<div>
+          <script type="text/javascript" src="/templates/FixLand/regger/js/popup.js"></script>
+          <link rel="stylesheet" type="text/css" media="all" href="/templates/FixLand/regger/widgets/default/css/theme.css">
+
+          <!--<a href="/auth.php?p=vk&amp;preloader=yes" class="round-icon btn-vk  reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/vk.png" title="Вконтакте" alt="Вконтакте">
+          </a>
+
+          <a href="/auth.php?p=facebook&amp;preloader=yes" class="round-icon btn-facebook  reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/facebook.png" title="Facebook" alt="Facebook">
+          </a>-->
+
+          <a href="/auth.php?p=google&amp;preloader=yes" class="round-icon btn-google reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/google.png" title="Google" alt="Google">
+          </a>
+
+          <a href="/auth.php?p=discord&amp;preloader=yes" class="round-icon btn-google reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/discord.png" title="Discord" alt="Discord">
+          </a>
+
+          <!--<a href="/auth.php?p=steam&amp;preloader=yes" class="round-icon btn-steam  reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/steam.png" title="Steam" alt="Steam">
+          </a>
+
+          <a href="/auth.php?p=mail&amp;preloader=yes" class="round-icon btn-mail  reggerPopup">
+            <img src="/templates/FixLand/regger/widgets/default/img/mail.png" title="Mail.ru" alt="Mail.ru">
+          </a>-->
+
+          <p>Вход через соцсети</p>
+            </div>
+            <a href="/index.php?do=lostpassword" style=""><b>Забыл пароль</b></a>
+        </div>
+    </div>
+</form>
+
+
+                        </div>
+            <!--<div class="text-center"><a target="_blank" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="btn btn-success btn-small right">Admin Panel</a></div>-->
+                </div>
+        </div>
+</header>
+
+<!--
+<div style="margin-top: 30px;">
+<div style="text-align:center;" id="85640-31"><script src="//ads.themoneytizer.com/s/gen.js?type=31"></script><script src="//ads.themoneytizer.com/s/requestform.js?siteId=85640&formatId=31"></script></div>
+</div>
+-->
+  <div class="wrapper clr">
+
+
+
+
+    <div class="flex-stretch">
+      <div
+        class="content ">
+
+
+
+        <!-- adblock fail -->
+        <div class="errors" id="helpus" style="display:none;">
+          <div class="title">
+            Внимание, у вас снова включен AdBlock!
+          </div>
+          <div class="description">
+            <p>Данный сторонний скрипт будет <b>вызывать проблемы с функционалом сайта</b>.</p><br>
+            <p><a href="https://www.donationalerts.com/r/online_fix_me" target="_blank">Поддержите проект</a>, отключите AdBlock в браузере.</p><br>
+          </div>
+        </div>
+
+
+                <div id='dle-content'><div class="wide-block free bordered clr">
+        <h1>
+                Статьи на тему: "beamng"
+        </h1>
+</div>
+
+<div class="search-page" id="searchtable">
+
+        <div class="search-form clr">
+                <form name="fullsearch" id="fullsearch" action="https://online-fix.me/index.php?do=search&amp;subaction=search&amp;story=beamng" method="post">
+<input type="hidden" name="do" id="do" value="search" />
+<input type="hidden" name="subaction" id="subaction" value="search" />
+<input type="hidden" name="search_start" id="search_start" value="0" />
+<input type="hidden" name="full_search" id="full_search" value="0" />
+<input type="hidden" name="result_from" id="result_from" value="1" /><table cellpadding="4" cellspacing="0" width="100%">
+  <tr>
+    <td class="search">
+      <div style="margin:10px;">
+                <input type="text" name="story" id="searchinput" value="beamng" class="textin" style="width:250px" onchange="document.getElementById('result_from').value = 1" /><br /><br />
+                <input type="button" class="bbcodes" name="dosearch" id="dosearch" value="Начать поиск" onclick="javascript:list_submit(-1); return false;" />
+
+            </div>
+
+        </td>
+    </tr>
+</table>
+</form>
+        </div>
+
+
+        <div class="message">
+                По Вашему запросу найдены материалы (Результаты запроса 1 - 1) :
+        </div>
+
+
+</div><script>
+function clearform(frmname){
+  var frm = document.getElementById(frmname);
+  for (var i=0;i<frm.length;i++) {
+    var el=frm.elements[i];
+    if (el.type=="checkbox" || el.type=="radio") {
+        if (el.name=='showposts') {document.getElementById('rb_showposts_0').checked=1; } else {el.checked=0; }
+    }
+    if ((el.type=="text") || (el.type=="textarea") || (el.type == "password")) { el.value=""; continue; }
+    if ((el.type=="select-one") || (el.type=="select-multiple")) { el.selectedIndex=0; }
+  }
+  document.getElementById('replylimit').value = 0;
+  document.getElementById('search_start').value = 0;
+  document.getElementById('result_from').value = 1;
+}
+function list_submit(prm){
+  var frm = document.getElementById('fullsearch');
+        if (prm == -1) {
+                prm=0;
+                frm.result_from.value=1;
+        } else {
+                frm.result_from.value=(prm-1) * 21 + 1;
+        }
+        frm.search_start.value=prm;
+
+  frm.submit();
+  return false;
+}
+function full_submit(prm){
+    document.getElementById('fullsearch').full_search.value=prm;
+    list_submit(-1);
+}
+</script>
+
+
+                <div class="news news-search">
+
+                <div class="article clr">
+    <a class="big-link" href="https://online-fix.me/games/racing/16506-beamng-drive-po-seti.html"></a>
+        <div class="image">
+                <!--<div class="category">
+            { link-category }
+                </div> -->
+                <a class="img" href="https://online-fix.me/games/racing/16506-beamng-drive-po-seti.html">
+            <img class="lazyload" data-src="https://online-fix.me/uploads/posts/2020-11/317323596_poster.jpg" alt="BeamNG Drive по сети" width="242" height="160">
+                </a>
+        </div>
+        <div class="article-content">
+                <div class="inform-panel">
+            <span class="info-date"><a href="https://online-fix.me/2020/11/02/" ><time datetime="2020-11-02T23:42:53+03:00">2 ноября 2020, 23:42</time></a> <i class="fa fa-eye" aria-hidden="true"></i> 553217 <i class="fa fa-comments" aria-hidden="true"></i> <a href="https://online-fix.me/games/racing/16506-beamng-drive-po-seti.html#comment">206</a></span>
+                </div>
+<a href="https://online-fix.me/games/racing/16506-beamng-drive-po-seti.html"><h2 class="title">
+BeamNG Drive по сети
+</h2></a>
+<div class="edit">&nbsp;Обновлено 25 сентября 2025, 14:59.&nbsp;Игра обновлена до версии 0.37.5.0.18733.</div>
+                <div class="preview-text">
+                        <b>Релиз игры:</b> 29.05.2015<br /><b>Игра через:</b> <a href="http://online-fix.me/files/progs/16108-steam.html" >Steam</a><br /><b>Режимы:</b> Кооператив <span class="fa fa-check"></span> \ Мультиплеер <span class="fa fa-times"></span>
+                </div>
+        </div>
+</div>
+
+                </div>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+      </div>
+
+
+
+<aside class="sidebar">
+
+
+  <br/>
+    <div class="text-center"><a target="_blank" href="https://www.donationalerts.com/r/online_fix_me" class="btn btn-success btn-small">Поддержать проект / Donate</a></div>
+     <br/>
+    <a class="sidebar-link" href="https://online-fix.me/programs/16217-faq-po-saytu.html"><i class="fa fa-question-circle" aria-hidden="true"></i> Появилась ошибка? Не скачивается? См. FAQ по сайту</a>
+    <a class="sidebar-link" href="https://online-fix.me/guides/17009-kak-poluchit-rol-how-to-obtain-role-mecenat.html"><i class="fa fa-question-circle" aria-hidden="true"></i> Как получить роль Меценат / How to obtain Donator role?</a>
+    <br/>
+
+<!--
+<div class="text-center">
+<div id="85640-3"><script src="//ads.themoneytizer.com/s/gen.js?type=3"></script><script src="//ads.themoneytizer.com/s/requestform.js?siteId=85640&formatId=3"></script></div>
+    </div>
+-->
+
+    <div class="chat sidebar-block text-gray">
+                <div class="sidebar-title lc_block">Чат</div>
+
+        <center>"Проезжим" чат недоступен, <br/><a href="#" onclick="Showpopup('loginbox', 350, 280); return false;" rel="noindex, nofollow" title="">зарегистрируйтесь</a>     или войдите.</center>
+
+
+ </div>
+
+        <!--<div class="applications clr">
+                <div class="app-wrapper">
+                        <a class="radmin" title="Radmin VPN скачать" href="http://online-fix.me/files/progs/16107-radmin-vpn.html"></a>
+                        <a class="gameranger" title="GameRanger скачать" href="http://online-fix.me/16110-gameranger.html"></a>
+                </div>
+        </div>-->
+
+<!--
+<div class="text-center">
+<div id="85640-3"><script src="//ads.themoneytizer.com/s/gen.js?type=3"></script><script src="//ads.themoneytizer.com/s/requestform.js?siteId=85640&formatId=3"></script></div>
+    </div>
+-->
+
+
+
+    <!-- Partner integration
+        <div class="forum-themes informer-sidebar-block sidebar-block" style="padding: 10px 5px;">
+        <div class="sidebar-title unselectable">
+                        Партнёр            </div>
+    <div id="twitch-embed"></div>
+      <script src="https://player.twitch.tv/js/embed/v1.js"></script>
+<script type="text/javascript">
+        window.__twilightSettings = {"environment": "test"};
+                Object.freeze(window.__twilightSettings);
+         var embed = new Twitch.Embed( 'twitch-embed', {
+            width   : 340,
+            height   : 600,
+            channel   : 'xop0',
+            autoplay: true,
+            muted   : true,
+            layout: "video-with-chat",
+            theme   : 'dark',
+             parent   : ['оnline-fix.to']
+         } );
+            </script></div>-->
+
+
+
+        <div class="forum-themes informer-sidebar-block sidebar-block" style="margin-top: 5px;">
+    <div class="sidebar-title unselectable">
+                        Обсуждения
+                </div>
+
+
+                <div class="iComm" id="iComm"><div class="lastcomm"><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/horror/page,1,4,17712-repo-po-seti.html#comment-id-399743">Можно ли установить свои собственные фотонные серверы?? Is it possible to set our own custom photon servers?</a>
+        <p class="theme-info">R.E.P.O. по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/horror/page,1,4,17712-repo-po-seti.html#comment-id-399743">68
+                 <span class="date">Сегодня, 13:43</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/oanwdoadwn/" onclick="ShowProfile('oanwdoadwn', 'https://online-fix.me/user/oanwdoadwn/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="oanwdoadwn" title="oanwdoadwn"/></a>
+    </div>
+  </div>
+</div><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/adventures/17920-mimesis-po-seti.html#comment-id-399742">Does the game still have the error &quot;Invalid code or tram does not exist&quot;?</a>
+        <p class="theme-info">MIMESIS по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/adventures/17920-mimesis-po-seti.html#comment-id-399742">10
+                 <span class="date">Сегодня, 13:34</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/MarsSun/" onclick="ShowProfile('MarsSun', 'https://online-fix.me/user/MarsSun/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="MarsSun" title="MarsSun"/></a>
+    </div>
+  </div>
+</div><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/racing/16969-f1-2019-po-seti.html#comment-id-399741">does it still work?</a>
+        <p class="theme-info">F1 2019 по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/racing/16969-f1-2019-po-seti.html#comment-id-399741">16
+                 <span class="date">Сегодня, 13:10</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/Talukdar_Jyotirmoy/" onclick="ShowProfile('Talukdar_Jyotirmoy', 'https://online-fix.me/user/Talukdar_Jyotirmoy/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="Talukdar_Jyotirmoy" title="Talukdar_Jyotirmoy"/></a>
+    </div>
+  </div>
+</div><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/strategy/17892-payday-the-heist-po-seti.html#comment-id-399740">Поддайте газку!</a>
+        <p class="theme-info">PAYDAY The Heist по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/strategy/17892-payday-the-heist-po-seti.html#comment-id-399740">2
+                 <span class="date">Сегодня, 11:20</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/podxxx/" onclick="ShowProfile('podxxx', 'https://online-fix.me/user/podxxx/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="podxxx" title="podxxx"/></a>
+    </div>
+  </div>
+</div><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/sandbox/page,1,8,16708-minecraft-for-windows-10-po-seti.html#comment-id-399739">how do i play</a>
+        <p class="theme-info">Minecraft for Windows 10 по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/sandbox/page,1,8,16708-minecraft-for-windows-10-po-seti.html#comment-id-399739">148
+                 <span class="date">Сегодня, 10:20</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/Ali_jion/" onclick="ShowProfile('Ali_jion', 'https://online-fix.me/user/Ali_jion/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="Ali_jion" title="Ali_jion"/></a>
+    </div>
+  </div>
+</div><div class="lastcomm">
+  <div class="lcomment lcomm-item theme clr">
+    <div class="left-content">
+      <a href="https://online-fix.me/games/horror/page,1,4,17712-repo-po-seti.html#comment-id-399738">@ xyperban , Did u find solution?</a>
+        <p class="theme-info">R.E.P.O. по сети</p>
+      <div class="theme-info">
+             <a href="https://online-fix.me/games/horror/page,1,4,17712-repo-po-seti.html#comment-id-399738">68
+                 <span class="date">Сегодня, 10:17</span><br />
+          </a>
+      </div>
+    </div>
+    <div class="image">
+          <a href="https://online-fix.me/user/Akshay55/" onclick="ShowProfile('Akshay55', 'https://online-fix.me/user/Akshay55/', '0'); return false;"><img src="/templates/FixLand/dleimages/noavatar.png" alt="Akshay55" title="Akshay55"/></a>
+    </div>
+  </div>
+</div></div><!-- .lastcomm --></div>
+
+                <a href="/index.php?do=lastcomments" class="sidebar-link" title="Все последние комментарии">Все комментарии</a>
+        </div>
+
+    <!---->
+
+
+    <iframe src="https://discord.com/widget?id=619452924522922013&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+
+
+
+
+</aside>
+
+
+
+
+
+    </div>
+          <div class="horizontal-slider">
+              <div class="title">
+                  Обновления
+              </div>
+
+              <div class="container">
+                  <div>
+    <a href="/games/sandbox/16708-minecraft-for-windows-10-po-seti.html" title="Minecraft for Windows 10 по сети">
+        <img src="https://online-fix.me/uploads/posts/2021-09/152963811_poster.jpg" alt="Minecraft for Windows 10 по сети"/>
+        <p>Minecraft for Windows 10 по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:14</p>
+    </a>
+</div><div>
+    <a href="/games/adventures/17913-rv-there-yet-po-seti.html" title="RV There Yet по сети">
+        <img src="https://online-fix.me/uploads/posts/2025-10/2773291610_poster.jpg" alt="RV There Yet по сети"/>
+        <p>RV There Yet по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:03</p>
+    </a>
+</div><div>
+    <a href="/games/adventures/17801-peak-po-seti.html" title="PEAK по сети">
+        <img src="https://online-fix.me/uploads/posts/2025-06/2071858010_poster.jpg" alt="PEAK по сети"/>
+        <p>PEAK по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:02</p>
+    </a>
+</div><div>
+    <a href="/games/officialservers/17429-palworld-po-seti.html" title="Palworld по сети">
+        <img src="https://online-fix.me/uploads/posts/2024-01/2005039851_poster.jpg" alt="Palworld по сети"/>
+        <p>Palworld по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:02</p>
+    </a>
+</div><div>
+    <a href="/games/racing/17420-my-summer-car-po-seti.html" title="My Summer Car по сети">
+        <img src="https://online-fix.me/uploads/posts/2024-01/1053272206_poster.jpg" alt="My Summer Car по сети"/>
+        <p>My Summer Car по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:01</p>
+    </a>
+</div><div>
+    <a href="/games/adventures/17920-mimesis-po-seti.html" title="MIMESIS по сети">
+        <img src="https://online-fix.me/uploads/posts/2025-10/1006625899_poster.jpg" alt="MIMESIS по сети"/>
+        <p>MIMESIS по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:00</p>
+    </a>
+</div><div>
+    <a href="/games/simulator/16645-euro-truck-simulator-2-po-seti.html" title="Euro Truck Simulator 2 по сети">
+        <img src="https://online-fix.me/uploads/posts/2021-06/1083679601_poster.jpg" alt="Euro Truck Simulator 2 по сети"/>
+        <p>Euro Truck Simulator 2 по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 17:00</p>
+    </a>
+</div><div>
+    <a href="/games/simulator/16642-american-truck-simulator-po-seti.html" title="American Truck Simulator по сети">
+        <img src="https://online-fix.me/uploads/posts/2021-05/2662267994_poster.jpg" alt="American Truck Simulator по сети"/>
+        <p>American Truck Simulator по сети</p>
+        <p class="text-gray text-small">3 ноября 2025, 16:59</p>
+    </a>
+</div><div>
+    <a href="/games/horror/17712-repo-po-seti.html" title="R.E.P.O. по сети">
+        <img src="https://online-fix.me/uploads/posts/2025-02/3288183153_poster.jpg" alt="R.E.P.O. по сети"/>
+        <p>R.E.P.O. по сети</p>
+        <p class="text-gray text-small">30 октября 2025, 17:16</p>
+    </a>
+</div><div>
+    <a href="/games/strategy/16458-crusader-kings-iii-po-seti.html" title="Crusader Kings III по сети">
+        <img src="https://online-fix.me/uploads/posts/2020-09/81286825_poster.jpg" alt="Crusader Kings III по сети"/>
+        <p>Crusader Kings III по сети</p>
+        <p class="text-gray text-small">30 октября 2025, 14:53</p>
+    </a>
+</div><div>
+    <a href="/games/survival/16528-colony-survival-po-seti.html" title="Colony Survival по сети">
+        <img src="https://online-fix.me/uploads/posts/2020-12/759363571_poster.jpg" alt="Colony Survival по сети"/>
+        <p>Colony Survival по сети</p>
+        <p class="text-gray text-small">30 октября 2025, 14:53</p>
+    </a>
+</div><div>
+    <a href="/games/survival/17505-abiotic-factor-po-seti.html" title="Abiotic Factor по сети">
+        <img src="https://online-fix.me/uploads/posts/2025-07/3098974068_poster.jpg" alt="Abiotic Factor по сети"/>
+        <p>Abiotic Factor по сети</p>
+        <p class="text-gray text-small">30 октября 2025, 14:52</p>
+    </a>
+</div>
+              </div>
+              <br />
+              <a class="sidebar-link center" href="/guides_upd.html">Все обновления</a>
+          </div>
+
+  </div>
+
+  <footer class="footer-back">
+
+        <div class="footer">
+
+                <div class="clr">
+<!--<div class="footer-menu text-gray left text-left left">
+    <button class="btn" id="feedback" style="height: 31px;line-height: 1;padding: 5px;">Обратная связь</button>
+    </div>-->
+
+            <div class="footer-menu text-gray left text-left left">
+                <a href="https://online-fix.me/terms-of-use.html">Условия использования</a>
+
+
+                </div>
+
+             <div class="footer-menu text-gray left text-left left">
+                 <a href="https://online-fix.me/privacy.html">Политика конф-ти</a>
+                 </div>
+
+                  <div class="footer-menu text-gray left text-left left">
+                       <a href="https://online-fix.me/dmca.html">Правообладателям</a>
+                      </div>
+             <div class="footer-menu text-gray left text-left left">
+                       <a href="https://online-fix.me/partners.html">Реклама</a>
+                      </div>
+                </div>
+
+                <div class="bottom-panel clr text-gray">
+            <div class="right counter" style="margin-left: 10px;">
+<!--LiveInternet counter--><script type="text/javascript">
+/*
+document.write('<a href="//www.liveinternet.ru/click" '+
+'target="_blank"><img src="//counter.yadro.ru/hit?t45.6;r'+
+escape(document.referrer)+((typeof(screen)=='undefined')?'':
+';s'+screen.width+'*'+screen.height+'*'+(screen.colorDepth?
+screen.colorDepth:screen.pixelDepth))+';u'+escape(document.URL)+
+';h'+escape(document.title.substring(0,150))+';'+Math.random()+
+'" alt="" title="LiveInternet" '+
+'border="0" width="31" height="31"><\/a>')
+*/
+</script><!--/LiveInternet-->
+
+<!--LiveInternet updated code 18.03.21 -->
+<!--<script type="text/javascript">new Image().src = "https://counter.yadro.ru/hit?t45.6;r"+escape(document.referrer)+((typeof(screen)=="undefined")?"" :";s"+screen.width+"*"+screen.height+"*"  + (screen.colorDepth?screen.colorDepth:screen.pixelDepth))+";u"+escape(document.URL)+ ";h"+escape(document.title.substring(0,150))+ ";" +Math.random();</script>
+<a href="https://www.liveinternet.ru/click" target="_blank" rel="noindex, nofollow">
+<img src="https://counter.yadro.ru/logo?45.6" border="0" width="31" height="31" alt="Online Fix" title="Online Fix"/>
+</a>-->
+<!--/LiveInternet-->
+
+                <!-- Yandex.Metrika counter -->
+<!--<script type="text/javascript" >
+   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+   m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+   ym(56669080, "init", {
+        clickmap:true,
+        trackLinks:true,
+        accurateTrackBounce:true
+   });
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/56669080" style="position:absolute; left:-9999px;" alt="" /></div></noscript>-->
+<!-- /Yandex.Metrika counter -->
+            </div>
+
+                        <a class="right footer-logo" href="/">
+                                <img src="/templates/FixLand/images/logo1.png" alt=""/>
+                        </a>
+
+                        <div class="right text-right footer-text">
+                <p class="text-large text-white">&#169; 2019-<span id="c-year">2020</span> | Online-Fix.me</p>
+                                                                Помощь с запуском игр по сети
+                        </div>
+
+                        <div class="counter left">
+
+
+                        </div>
+
+                </div>
+
+        </div>
+</footer>
+<a id="button"></a>
+
+<link rel="preload" href="/engine/classes/fancybox/jquery.fancybox.css" as="style">
+<link rel="stylesheet" href="/engine/classes/fancybox/jquery.fancybox.css">
+
+
+<script type="text/javascript" src="/engine/classes/js/jquery.js"></script>
+<script type="text/javascript" src="/engine/classes/js/jqueryui.js"></script>
+<script type="text/javascript" src="/engine/classes/js/dle_js.js"></script>
+
+<div id="loading-layer" style="display:none"><div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div></div>
+
+<script type="text/javascript">
+<!--
+var dle_root       = '/';
+var dle_admin      = '';
+var dle_login_hash = '';
+var dle_group      = 5;
+var dle_editusers  = '0';
+var dle_skin       = 'FixLand';
+var dle_wysiwyg    = '0';
+var quick_wysiwyg  = '0';
+var dle_act_lang   = ["Да", "Нет", "Ввод", "Отмена", "Сохранить", "Удалить"];
+var menu_short     = 'Быстрое редактирование';
+var menu_full      = 'Полное редактирование';
+var menu_profile   = 'Просмотр профиля';
+var menu_send      = 'Отправить сообщение';
+var menu_uedit     = 'Админцентр';
+var dle_info       = 'Информация';
+var dle_confirm    = 'Подтверждение';
+var dle_prompt     = 'Ввод информации';
+var dle_req_field  = 'Заполните все необходимые поля';
+var dle_del_agree  = 'Вы действительно хотите удалить? Данное действие невозможно будет отменить';
+var dle_spam_agree = 'Вы действительно хотите отметить пользователя как спамера? Это приведет к удалению всех его комментариев';
+var dle_complaint  = 'Укажите текст вашей жалобы для администрации:';
+var dle_big_text   = 'Выделен слишком большой участок текста.';
+var dle_orfo_title = 'Укажите комментарий для администрации к найденной ошибке на странице';
+var dle_p_send     = 'Отправить';
+var dle_p_send_ok  = 'Уведомление успешно отправлено';
+var dle_save_ok    = 'Изменения успешно сохранены. Обновить страницу?';
+var dle_del_news   = 'Удалить статью';
+var allow_dle_delete_news   = false;
+var dle_search_delay   = false;
+var dle_search_value   = '';
+
+jQuery(function($){
+FastSearch();
+});
+//-->
+</script>
+
+
+
+
+
+
+
+
+<script type="text/javascript" src="/templates/FixLand/js/main.js?v1" defer></script>
+<script type="text/javascript" src="/templates/FixLand/js/profile-mod.js" defer></script>
+<script type="text/javascript" src="/templates/FixLand/js/jquery.qtip.min.js" defer></script>
+
+<script type="text/javascript" src="/templates/FixLand/slick/slick.min.js" defer></script>
+<script type="text/javascript" src="/engine/classes/fancybox/jquery.fancybox.pack.js" defer></script>
+<script type="text/javascript" src="/templates/FixLand/js/tooltip.js" defer></script>
+<script type="text/javascript" src="/templates/FixLand/js/orating_pack.js" defer></script>
+
+
+
+
+
+<!-- footer vk loading end -->
+
+
+<!-- adblock fail id bottomads -->
+<!-- <script type="text/javascript" src="/templates/FixLand/js/ads.js" defer></script> -->
+
+<!-- ADPlay -->
+<!--<script type="text/javascript" src="https://widget.adplay.ru/fn/launch2283970.js" async charset="UTF-8"></script>-->
+
+<!-- ADCash
+<script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
+<script type="text/javascript">
+    aclib.runPop({
+        zoneId: '9258830',
+    });
+</script> -->
+
+<!-- Galaksion -->
+<script data-cfasync="false" async type="text/javascript" src="//bowersorgamy.com/gQGxAHa4m6b/127872"></script>
+        <div><script data-cfasync="false" async type="text/javascript" src="//sw.lekachmididae.com/th5GIzYI6kmNa4/126268"></script></div>
+<script data-cfasync="false" async type="text/javascript" src="//ty.barkersceleb.com/riH9h00xIsIaIhCX/129985"></script>
+
+<!-- UnderSite AD -->
+<!--<script type='text/javascript' src='https://myroledance.com/services/?id=158101'></script>
+
+<script type='text/javascript' data-cfasync='false'>
+  let e7f652f7be_cnt = 0;
+  let e7f652f7be_interval = setInterval(function(){
+    if (typeof e7f652f7be_country !== 'undefined') {
+      clearInterval(e7f652f7be_interval);
+      (function(){
+        var ud;
+        try { ud = localStorage.getItem('e7f652f7be_uid'); } catch (e) { }
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.charset = 'utf-8';
+        script.async = 'true';
+        script.src = 'https://' + e7f652f7be_domain + '/' + e7f652f7be_path + '/' + e7f652f7be_file + '.js?26346&v=3&u=' + ud + '&a=' + Math.random();
+        document.body.appendChild(script);
+      })();
+    } else {
+      e7f652f7be_cnt += 1;
+      if (e7f652f7be_cnt >= 60) {
+        clearInterval(e7f652f7be_interval);
+      }
+    }
+  }, 500);
+</script>-->
+
+<!-- ADFACTOR AD -->
+<!--<script type='text/javascript' src='https://trutheyesstab.com/services/?id=159355'></script>
+
+<script type='text/javascript' data-cfasync='false'>
+        let e8c43d8940_cnt = 0;
+        let e8c43d8940_interval = setInterval(function(){
+                if (typeof e8c43d8940_country !== 'undefined') {
+                        clearInterval(e8c43d8940_interval);
+                        (function(){
+                                var script = document.createElement('script');
+                                script.type = 'text/javascript';
+                                script.charset = 'utf-8';
+                                script.async = 'true';
+                                script.src = 'https://' + e8c43d8940_domain + '/' + e8c43d8940_path + '/' + e8c43d8940_file + '.js?26555a' + Math.random();
+                                document.body.appendChild(script);
+                        })();
+                } else {
+                        e8c43d8940_cnt += 1;
+                        if (e8c43d8940_cnt >= 60) {
+                                clearInterval(e8c43d8940_interval);
+                        }
+                }
+        }, 500);
+</script> /-->
+
+
+
+
+
+<script>
+        $(document).ready(function () {
+
+
+        $('.horizontal-slider .container').slick({
+                  dots: false,
+                  infinite: true,
+                  speed: 300,
+                  slidesToShow: 4,
+                  slidesToScroll: 4,
+                                        prevArrow: '<button class="btn-left duration02"><i class="fa fa-angle-left" aria-hidden="true"></i></button>',
+                                        nextArrow: '<button class="btn-right duration02"><i class="fa fa-angle-right" aria-hidden="true"></i></button>',
+                  responsive: [
+                        {
+                          breakpoint: 1024,
+                          settings: {
+                                slidesToShow: 3,
+                                slidesToScroll: 3,
+                          }
+                        },
+                        {
+                          breakpoint: 768,
+                          settings: {
+                                slidesToShow: 2,
+                                slidesToScroll: 2
+                          }
+                        },
+                        {
+                          breakpoint: 500,
+                          settings: {
+                                slidesToShow: 1,
+                                slidesToScroll: 1
+                          }
+                        }
+                  ]
+                });
+
+        document.getElementById("c-year").innerHTML = new Date().getFullYear();
+
+
+        $('#feedback').click(function () {
+                        $('#questions-modal').dialog({
+                                width: '500px',
+                                title: 'Обратная связь',
+                        });
+                })
+
+                var btn = $('#button');
+
+                $(window).scroll(function() {
+                  if ($(window).scrollTop() > 300) {
+                        btn.addClass('show');
+                  } else {
+                        btn.removeClass('show');
+                  }
+                });
+
+                btn.on('click', function(e) {
+                          e.preventDefault();
+                          $('html, body').animate({scrollTop:0}, '300');
+                });
+
+        if($('#pl-buy-link').length) {
+                        var gamePlatiRuSearchLink = $('#pl-buy-link').attr('href').replace(' по сети', '');
+                        $('#pl-buy-link').attr('href', gamePlatiRuSearchLink)
+        }
+
+
+        });
+
+/*
+
+
+        $(function() {
+          if (
+                !document.getElementById("gYAhMmKOSyIk") &&
+                !localStorage.getItem("disable-helpus")
+          ) {
+
+                cmod_d = true;
+                $("div.quote a.btn").replaceWith( "Ссылка на скачивание недоступна. Отключите Adblock, чтобы она появилась." );
+
+                setTimeout(function() {
+                  $("#helpus").fadeIn(500);
+                }, 1100);
+          }
+        });
+
+         if (document.getElementsByClassName('e2c5c2f6e94e0cc2ccf4706e2ea6170e')[0].clientHeight < "20") {
+                        $("div.quote a.btn").replaceWith( "Ссылка на скачивание недоступна. Отключите Adblock, чтобы она появилась." );
+
+                        setTimeout(function() {
+                          $("#helpus").fadeIn(500);
+                        }, 1100);
+        };
+
+
+*/
+
+
+
+
+</script>
+
+<div id="questions-modal"role="dialog" style="display:none;">
+        <div>
+                По вопросам рекламы вы можете обращаться на почту: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="aedecfdcdac0cbdcddc6c7deeec1c0c2c7c0cb83c8c7d680c3cb">[email&#160;protected]</a>
+        <br><br>
+        По всем остальным вопросам вы можете обращаться на почту: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6c0d080105022c030200050209410a0514420109">[email&#160;protected]</a>
+        </div>
+</div>
+<!--
+<script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="12074"></script>
+-->
+
+<!--
+<div id="85640-39"><script src="//ads.themoneytizer.com/s/gen.js?type=39"></script><script src="//ads.themoneytizer.com/s/requestform.js?siteId=85640&formatId=39"></script></div>
+-->
+
+
+
+  <div class="error colored-links">
+
+  </div>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    $(document).ready(function () {
+      // Smooth scroll
+      $('.smooth-scroll').click(function (event) {
+        event.preventDefault();
+
+        $('html, body').animate({
+          scrollTop: $($.attr(this, 'href')).offset().top
+        }, 500);
+      });
+    });
+
+  </script>
+
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9993d617a86c5149',t:'MTc2MjI1NjQyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+</html>
+<!-- DataLife Engine Copyright SoftNews Media Group (http://dle-news.ru) -->
+
+<!-- Время выполнения скрипта 0.02094 секунд -->
+<!-- Время затраченное на компиляцию шаблонов 0.00191 секунд -->
+<!-- Время затраченное на выполнение MySQL запросов: 0.00028 секунд -->
+<!-- Общее количество MySQL запросов 0 -->
+<!-- Затрачено оперативной памяти 17.16 MB -->
+<!-- Для вывода использовалось сжатие gzip -->
+<!-- Общий размер файла: 39217 байт После сжатия: 12950 байт -->
+OFX FETCH URL = https://online-fix.me/games/racing/16506-beamng-drive-po-seti.html
+OFX RAW LENGTH = 67487
+OFX RAW START = <!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-i
+[RepackGames SEARCH] Výsledkov: 24

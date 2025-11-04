@@ -112,32 +112,35 @@ app.get('/api/scrape', async (req, res) => {
   }
 });
 
-app.get('/api/all', async (req, res) => {
-  try {
-    const urls = [
-      'https://ankergames.net/',
-      'https://game3rb.com/',
-      'https://repack-games.com/',
-      'https://steamunderground.net/',
-      'https://online-fix.me/'
-    ];
+app.get('/api/all/stream', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  if(res.flushHeaders) res.flushHeaders();
 
-    let final = [];
+  const send = (event,payload)=>{
+    res.write('event: '+event+'\n');
+    res.write('data: '+JSON.stringify(payload)+'\n\n');
+  };
 
-    for (const u of urls) {
-      const part = await scrape(u);
-      if (part.items) final.push(...part.items);
+  const urls = [
+    'https://ankergames.net/',
+    'https://game3rb.com/',
+    'https://repack-games.com/',
+    'https://steamunderground.net/',
+    'https://online-fix.me/'
+  ];
+
+  for(const u of urls){
+    const r = await scrape(u);
+    const items = r.items || [];
+    for(const it of items){
+      send('item',{ item: { ...it } });
     }
-
-    res.json({
-      merged:true,
-      count: final.length,
-      items: final
-    });
-  } catch(e){
-    console.error('ALL FAIL:', e.message);
-    res.status(500).json({error:'ALL FAIL'});
   }
+
+  send('done',{});
+  res.end();
 });
 
 // catch-all nechaj až na konci

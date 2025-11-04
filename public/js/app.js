@@ -5,6 +5,102 @@ const API_ENDPOINT = '';            // náš serverový endpoint
 // --- progressive search state ---
 let currentES = null;
 let activeSrcFilter = 'ALL';
+let onlineFixVersions = [];     // filled when OnlineFix cards arrive
+const loadedKeys = new Set();   // dedupe (href|src or title|src)
+
+function shortVersion(v) {
+  // pick first up to 3 numeric segments, e.g. "0.37.5" from "0.37.5.0.18733"
+  const m = (v || '').match(/\d+(?:\.\d+){0,5}/);
+  if (!m) return '';
+  return m[0].split('.').slice(0, 3).join('.');
+}
+let OFIndex = new Map();  // short version -> { url, full, title, item }
+let loadedGames = [];
+
+function resetOFState() {
+  OFIndex.clear();
+  loadedGames = [];
+}
+
+function shortVersionStr(v) {
+  if (!v) return '';
+  const m = String(v).match(/[0-9]+(?:\.[0-9]+)*/);
+  if (!m) return '';
+  return m[0].split('.').slice(0, 3).join('.'); // napr. 0.37.5
+}
+
+function registerOF(item) {
+  if (!item || item.src !== 'OnlineFix') return;
+  const sv = shortVersionStr(item.version);
+  const url = item.href || item.link || item.detail || item.url || '';
+  if (!sv || !url) return;
+  OFIndex.set(sv.toLowerCase(), {
+    url,
+    full: item.version,
+    title: item.title || '',
+    item
+  });
+  // po každom novom OF zázname dooznač existujúce karty
+  retagExistingCardsWithOF();
+}
+
+function matchOFForTitle(title) {
+  if (!title) return null;
+  const tl = title.toLowerCase();
+  for (const [sv, meta] of OFIndex) {
+    if (sv && tl.includes(sv)) return { short: sv, ...meta };
+  }
+  return null;
+}
+
+function createOFOverlay(ofMeta) {
+  const btn = document.createElement('button');
+  btn.className = 'of-overlay';
+  btn.title = ofMeta.full ? `Online-Fix ${ofMeta.full}` : 'Online-Fix';
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (ofMeta.item) openModal(ofMeta.item);
+    else if (ofMeta.url) window.open(ofMeta.url, '_blank');
+  });
+
+  return btn;
+}
+
+function retagExistingCardsWithOF() {
+  const cards = document.querySelectorAll('#cardGrid .card');
+  cards.forEach(card => {
+    const title = card.querySelector('.card__title')?.textContent || '';
+    const thumb = card.querySelector('.card__thumb');
+    if (!thumb || !title) return;
+    const of = matchOFForTitle(title);
+    if (of && !thumb.querySelector('.of-overlay')) {
+      thumb.appendChild(createOFOverlay(of));
+      console.log('[OFX][match]', of.short, '->', `"${title}"`);
+    }
+  });
+}
+
+function normalizeImg(src) {
+  if (!src) return '';
+  let s = String(src);
+  const apiPrefix = '/api/img?url=';
+
+  try {
+    while (s.startsWith(apiPrefix)) {
+      const q = s.slice(apiPrefix.length);
+      const decoded = decodeURIComponent(q);
+      if (decoded.startsWith(apiPrefix)) { s = decoded; continue; }
+      s = decoded;
+      break;
+    }
+  } catch {}
+
+  if (s.startsWith('data:') || (s.startsWith('/') && !s.startsWith('/http'))) return s;
+  if (/^https?:\/\//i.test(s)) return `${apiPrefix}${encodeURIComponent(s)}`;
+  return `${apiPrefix}${encodeURIComponent(s)}`;
+}
+
 
 // Create N skeleton cards (shimmer placeholders)
 function showSkeletons(n = 100) {
@@ -49,47 +145,52 @@ document.getElementById('srcFilter').addEventListener('click', e => {
     card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
 });
-
-// Append real cards without clearing the grid
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
+
   list.forEach(g => {
-    const shouldShow = (activeSrcFilter === 'ALL' || g.src === activeSrcFilter);
-    if(!g.img && g.poster) g.img = g.poster;
-    if (g.img) g.img = `/api/img?url=${encodeURIComponent(g.img)}`;
+    if (!g.img && g.poster) g.img = g.poster;
+    g.img = normalizeImg(g.img);
 
+    // source badge class (zjednotené)
     let badgeClass = 'badge--good';
-    if (g.src === 'Anker') badgeClass = 'badge--good';
-    else if (g.src === 'Game3RB') badgeClass = 'badge--good';
-    else if (g.src === 'RepackGames') badgeClass = 'badge--good';
-    else if (g.src === 'SteamUnderground') badgeClass = 'badge--good';
-    else if (g.src === 'OnlineFix') badgeClass = 'badge--good';
+    if (!g.tags || !g.tags.length) badgeClass = 'badge--warn';
+    const tag0 = g.tags && g.tags.length ? g.tags[0] : 'Not Categorized';
 
-    // determine tag text
-    let tag0 = g.tags && g.tags.length ? g.tags[0] : 'Not Categorized';
+    // OF match pre názov
+    const of = matchOFForTitle(g.title);
 
-    // override if tag missing
-    if (!g.tags || !g.tags.length) {
-      badgeClass = 'badge--warn';
-    }
+    const overlay = of ? createOFOverlay(of) : null;
 
-    const card = el('article', { class: 'card', onclick: () => openModal(g), style: shouldShow ? '' : 'display:none;' }, [
-      el('div', { class: 'card__thumb', style: g.img ? `background-image:url('${g.img}')` : '' }),
+    const thumb = el('div', {
+      class: 'card__thumb',
+      style: g.img ? `background-image:url('${g.img}')` : ''
+    }, overlay ? [overlay] : []);
+
+    const card = el('article', {
+      class: 'card',
+      onclick: () => openModal(g)
+    }, [
+      thumb,
       el('div', { class: 'card__body' }, [
         el('h3', { class: 'card__title' }, g.title),
         el('div', { class: 'card__meta' }, [
           el('span', {}, g.src || ''),
-          el('span', { class: 'badge ' + badgeClass }, tag0.substring(0, 16))
+          el('span', { class: 'badge ' + badgeClass }, (tag0 || 'Not Categorized').substring(0, 16))
         ])
       ])
     ]);
 
-    // replace one skeleton if present; otherwise append
+    // swap skeleton or append
     const sk = grid.querySelector('.card.skeleton');
     if (sk) sk.replaceWith(card);
     else grid.append(card);
+
+    // uložiť do pamäti
+    loadedGames.push(g);
   });
 }
+
 
 
 // --- DEMO fallback dataset (pôvodné) ---
@@ -101,26 +202,6 @@ let games = [
   { id: 5, title: "Thread Mesh Tactics", tags: ["Strategy","Tech"], rating: "Veľmi kladné", price: "24,99 €" },
   { id: 6, title: "DarkOrbit Redux", tags: ["Space","MMO"], rating: "Kladné", price: "Free" },
 ];
-
-function showLoading(msg = 'Načítavam hry…') {
-  const el = document.getElementById('loadingScreen');
-  if (!el) return;
-  el.querySelector('p').textContent = msg;
-  el.hidden = false;
-
-  // Bezpečnostný timeout (fallback)
-  clearTimeout(el._timeout);
-  el._timeout = setTimeout(() => {
-    hideLoading();
-  }, 20000);
-}
-
-function hideLoading() {
-  const el = document.getElementById('loadingScreen');
-  if (!el) return;
-  clearTimeout(el._timeout);
-  el.hidden = true;
-}
 
 
 // --- UI helpery (tvoje) ---
@@ -135,48 +216,53 @@ function el(tag, attrs={}, children=[]) {
   children.forEach(c => node.append(c));
   return node;
 }
-
-function renderGameList() {
-  const wrap = document.getElementById('gameList');
-  wrap.innerHTML = '';
-  games.forEach(g => {
-    wrap.append(el('div', {class:'game-pill', onclick: () => openModal(g)}, [
-      el('div', {class:'game-pill__thumb', style: g.img ? `background-image:url('${g.img}')` : ''}),
-      el('div', {class:'game-pill__meta'}, [
-        el('div', {class:'game-pill__title'}, g.title),
-        el('div', {class:'game-pill__sub'}, (g.tags||[]).join(' · ')),
-      ])
-    ]));
-  });
-}
-
 function renderCards(list = games) {
   const grid = document.getElementById('cardGrid');
   grid.innerHTML = '';
-  list.forEach(g => {
 
-    if(!g.img && g.poster) g.img = g.poster;
-    if (g.img) {
-      g.img = `/api/img?url=${encodeURIComponent(g.img)}`;
-    }
+  list.forEach(g => {
+    if (!g.img && g.poster) g.img = g.poster;
+    g.img = normalizeImg(g.img);
 
     let badgeClass = 'badge--good';
     if (g.src === 'Anker') badgeClass = 'badge--good';
     else if (g.src === 'Game3RB') badgeClass = 'badge--warn';
     else if (g.src === 'RepackGames') badgeClass = 'badge--neutral';
-    const card = el('article', {class:'card', onclick: () => openModal(g)}, [
-      el('div', {class:'card__thumb', style: g.img ? `background-image:url('${g.img}')` : ''}),
-      el('div', {class:'card__body'}, [
-        el('h3', {class:'card__title'}, g.title),
-        el('div', {class:'card__meta'}, [
+
+    // Online-Fix match for this card title
+    const of = matchOFForTitle(g.title);
+    const overlay = of
+      ? el('a', {
+          class: 'of-overlay',
+          href: of.url,
+          target: '_blank',
+          rel: 'noopener',
+          title: `Open Online-Fix detail (version ${of.full})`,
+          onclick: (e) => e.stopPropagation()
+        }, '+')
+      : null;
+
+    const thumb = el('div', {
+      class: 'card__thumb',
+      style: g.img ? `background-image:url('${g.img}')` : ''
+    }, overlay ? [overlay] : []);
+
+    const card = el('article', { class: 'card', onclick: () => openModal(g) }, [
+      thumb,
+      el('div', { class: 'card__body' }, [
+        el('h3', { class: 'card__title' }, g.title),
+        el('div', { class: 'card__meta' }, [
           el('span', {}, g.src || ''),
           el('span', { class: 'badge ' + badgeClass }, (g.tags?.[0] == "Simulati" ? "Simulation" : (g.tags?.[0] == "Cyberpun" ? "Cyberpunk" : g.tags?.[0]) || 'Not Categorized').substring(0, 16))
         ])
       ])
     ]);
+
     grid.append(card);
   });
 }
+
+
 
 function openModal(game) {
   if (!game.img && game.poster) game.img = game.poster;
@@ -187,13 +273,13 @@ function openModal(game) {
   body.innerHTML = '';
 
   // --- COVER ---
+  const coverUrl = normalizeImg(game.img);
   const cover = el('div', {
     class: 'modal__cover',
-    style: game.img
-      ? `background-image:url('${game.img}');background-size:cover;background-position:center;`
+    style: coverUrl
+      ? `background-image:url('${coverUrl}');background-size:cover;background-position:center;`
       : ''
   });
-
   // --- INFO BLOCK ---
   const info = [];
 
@@ -226,16 +312,19 @@ function openModal(game) {
 
   // --- ŠPECIÁLNE LEN PRE Game3RB ---
   if (game.src === 'Game3RB') {
-    // screenshoty (max 3)
+    // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
-      const shots = game.screenshots.slice(0, 3);
+      const shots = game.screenshots.slice(0, 4);
       info.push(
         el('div', { class: 'modal__shots' },
-          shots.map(src => el('img', { src, class: 'modal__shot' }))
+          shots.map(src => el('img', {
+            src: normalizeImg(src),
+            class: 'modal__shot'
+          }))
         )
       );
     }
-  }
+
 
     if (game.trailer) {
       info.push(el('video', {
@@ -259,19 +348,24 @@ function openModal(game) {
       ));
     }
   }
+}
 
   // --- ŠPECIÁLNE LEN PRE RepackGames ---
   if (game.src === 'RepackGames') {
 
-    // Screenshoty
+    // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
         el('div', { class: 'modal__shots' },
-          shots.map(src => el('img', { src, class: 'modal__shot' }))
+          shots.map(src => el('img', {
+            src: normalizeImg(src),
+            class: 'modal__shot'
+          }))
         )
       );
     }
+
 
     // Trailer (YouTube embed)
     if (game.trailer && game.trailer.includes('youtube')) {
@@ -300,20 +394,21 @@ function openModal(game) {
   }
   // --- ŠPECIÁLNE LEN PRE OnlineFix ---
   if (game.src === 'OnlineFix') {
-
+    if (game.version) {
+      info.push(el('p', { class: 'modal__version' }, `Version: ${game.version}`));
+    }
     // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
         el('div', { class: 'modal__shots' },
           shots.map(src => el('img', {
-            src: `/api/img?url=${encodeURIComponent(src)}`,
+            src: normalizeImg(src),
             class: 'modal__shot'
           }))
         )
       );
     }
-
     // trailer
     if (game.trailer) {
       info.push(
@@ -382,7 +477,7 @@ search.addEventListener('keydown', (e) => {
     loadFromScrape(); // fallback to default listing
     return;
   }
-
+  resetOFState();
   showSkeletons(100);
 
   // Server-Sent Events stream
@@ -405,6 +500,7 @@ search.addEventListener('keydown', (e) => {
     try {
       const payload = JSON.parse(ev.data);
       if (payload && payload.item) {
+        if (payload?.item?.src === 'OnlineFix') registerOF(payload.item); 
         const item = { id: Date.now() + Math.random(), ...payload.item };
         appendCards([item]);
       }
@@ -414,11 +510,9 @@ search.addEventListener('keydown', (e) => {
   es.addEventListener('error', (ev) => {
     // network issue or server error — close and keep what we have
     es.close();
-    hideLoading();
   });
 
   es.addEventListener('done', (ev) => {
-    hideLoading();
     es.close();
     currentES = null;
     hideSkeletons();
@@ -431,28 +525,25 @@ search.addEventListener('keydown', (e) => {
 });
 
 
-async function loadFromScrape(listUrl = DEFAULT_SOURCE) {
-  showLoading('Načítavam knižnicu hier…');
+async function loadFromScrape(){
+  resetOFState();
+  showSkeletons(100);
 
-  // 🔧 Vráť Promise, aby sa .finally() spustilo
-  return new Promise(async (resolve) => {
-    try {
-      const res = await fetch(listUrl);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      games = (data.items || []).map((it, idx) => ({ id: idx + 1, ...it }));
-      renderGameList();
-      renderCards();
-    } catch (e) {
-      console.warn('Scrape failed, používam demo dataset:', e);
-      renderGameList();
-      renderCards();
-    } finally {
-      hideLoading(); 
-      resolve();
-    }
+  const es = new EventSource('/api/all/stream');
+
+  es.addEventListener('item',ev=>{
+    const payload = JSON.parse(ev.data);
+    if (payload?.item?.src === 'OnlineFix') registerOF(payload.item);
+    const item = { id: Date.now()+Math.random(), ...payload.item };
+    appendCards([item]);
+  });
+
+  es.addEventListener('done',()=>{
+    hideSkeletons();
+    es.close();
   });
 }
+
 
 // === IMAGE PREVIEW (fullscreen zoom + zoom toggle) ===
 document.addEventListener('click', e => {
@@ -503,7 +594,5 @@ document.addEventListener('click', e => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   attachEvents();
-  showLoading('Načítavam knižnicu hier…');
   await loadFromScrape(); // čaká na dokončenie fetch
-  hideLoading();           // skryje až po úspechu
 });
