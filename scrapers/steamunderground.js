@@ -17,22 +17,78 @@ function extractGameVersion($, html) {
     clean($('.gameVersionValue').text()) ||
     clean($('.gameVersion').text().replace(/^\s*Game Version:\s*/i, ''));
   if (!v) {
-    const m = html.match(/Game\s*Version:\s*([^<\n]+)/i);
+    const m = (html || '').match(/Game\s*Version:\s*([^<\n]+)/i);
     if (m) v = clean(m[1]);
   }
   return v || '';
 }
 
+// Robust extractor for "cracked by"/"release group" when explicit block is missing
 function extractCrack($, html) {
-  let c = clean($('div.releaseGroup .releaseGroupValue').text());
-  if (!c) {
-    const m =
-      html.match(/Game\s*Source\s*\/\s*Scene\s*Group:\s*([^<\n]+)/i) ||
-      html.match(/Release\s*Group:\s*([^<\n]+)/i) ||
-      html.match(/Crack\s*:\s*([^<\n]+)/i);
-    if (m) c = clean(m[1]);
+  const normHtml = (html || '').replace(/<br\s*\/?>/gi, '\n');
+
+  const LABELS = [
+    'release group',
+    'scene group',
+    'game source',
+    'game source / scene group',
+    'cracked by',
+    'crack',
+  ];
+
+  const tryStrong = () => {
+    let out = '';
+    $('strong, b').each((_, el) => {
+      if (out) return;
+      const labelText = clean($(el).text()).replace(/:$/, '').toLowerCase();
+      if (!LABELS.includes(labelText)) return;
+
+      const parentText = clean($(el).parent().text());
+      let val = parentText.replace(
+        new RegExp('^\\s*' + $(el).text().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:\\-–—]?\\s*', 'i'),
+        ''
+      );
+      val = clean(val);
+      if (val) out = val;
+    });
+    return out;
+  };
+
+  let c = tryStrong();
+  if (c) return c;
+
+  const rx = [
+    /(Release\s*Group|Scene\s*Group|Game\s*Source(?:\s*\/\s*Scene\s*Group)?)\s*(?:[:\-–—]\s*|\s+)([A-Za-z0-9._ \-]{2,50})/i,
+    /(Cracked?\s*by|Crack(?:ed)?(?:\s*by)?)\s*(?:[:\-–—]\s*|\s+)([A-Za-z0-9._ \-]{2,50})/i
+  ];
+
+  for (const r of rx) {
+    const m = normHtml.match(r);
+    if (m && m[2]) {
+      return clean(m[2]);
+    }
   }
-  return c || '';
+
+  const legacy = clean($('div.releaseGroup .releaseGroupValue').text());
+  if (legacy) return legacy;
+
+  return '';
+}
+
+// Exact extractor for the SteamUnderground block shown in user's example
+function extractReleaseGroup($) {
+  let v = clean($('.releaseGroup .releaseGroupValue').first().text());
+  if (v) return v;
+
+  const label = $('.releaseGroup .releaseGroupSpan')
+    .filter((_, el) => /Game\s*Source\s*\/\s*Scene\s*Group/i.test($(el).text()))
+    .first();
+  if (label.length) {
+    v = clean(label.siblings('.releaseGroupValue').first().text());
+    if (v) return v;
+  }
+
+  return '';
 }
 
 function extractSysreq($) {
@@ -55,7 +111,7 @@ function extractSysreq($) {
 
 function pickStorage(sysreq, html) {
   if (sysreq && sysreq.Storage) return clean(sysreq.Storage);
-  const m = html.match(/Storage\s*:\s*([^\n<]+)/i);
+  const m = (html || '').match(/Storage\s*:\s*([^\n<]+)/i);
   return m ? clean(m[1]) : '';
 }
 
@@ -96,16 +152,14 @@ function bestImgUrl($img) {
   return normalizeUrl(url);
 }
 
-
 // Extract a Steam store link if present
 function extractSteamLink($, html) {
-  // Prefer links inside article content
   let href =
     $('a[href*="store.steampowered.com"]').first().attr('href') ||
     $('li:contains("Support the game") a[href*="store.steampowered.com"]').first().attr('href') ||
     '';
   if (!href) {
-    const m = html.match(/https?:\/\/store\.steampowered\.com\/[\w\-\/\?&=%#]+/i);
+    const m = (html || '').match(/https?:\/\/store\.steampowered\.com\/[\w\-\/\?&=%#]+/i);
     if (m) href = m[0];
   }
   if (href && href.startsWith('//')) href = 'https:' + href;
@@ -151,7 +205,7 @@ async function scrapeDetailSteamUnderground(url) {
     '';
   const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
 
-  // Meta
+  // Meta via regex fallbacks
   const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(html)?.[1] || '';
   const genre = /Genre:\s*([A-Za-z ,]+)/i.exec(html)?.[1]?.trim() || '';
   const developer = /Developer:\s*([^<\n]+)/i.exec(html)?.[1]?.trim() || '';
@@ -159,8 +213,12 @@ async function scrapeDetailSteamUnderground(url) {
   const releaseDate = /Release Date:\s*([^<\n]+)/i.exec(html)?.[1]?.trim() || '';
 
   const gameVersion = extractGameVersion($, html);
-  const crack = extractCrack($, html);
-  const releaseGroup = crack;
+
+  // Prefer explicit block, then fall back to robust extractor
+  const releaseGroup = extractReleaseGroup($) || extractCrack($, html);
+  const crack = releaseGroup;
+  const crackedBy = releaseGroup;
+
   const sysreq = extractSysreq($);
   const storage = pickStorage(sysreq, html);
   const finalSize = sizeRx || storage || '';
@@ -176,11 +234,9 @@ async function scrapeDetailSteamUnderground(url) {
   $('a[href*="steamunderground.net/download"]').each((_, a) => {
     const href = normalizeUrl($(a).attr('href') || '');
     if (!href || !href.startsWith('http')) return;
-
     const key = href.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-
     const label = clean($(a).text()) || 'Download';
     downloadLinks.push({ label, link: href });
   });
@@ -200,9 +256,10 @@ async function scrapeDetailSteamUnderground(url) {
     gameVersion,
     crack,
     releaseGroup,
+    crackedBy,
     sysreq,
-    uploaded,       // raw date text
-    uploadedText,   // "Uploaded: <date>"
+    uploaded,
+    uploadedText,
     trailer,
     downloadLinks,
     steam
@@ -245,21 +302,25 @@ async function scrapeSteamUndergroundSearch(q) {
     if (href && title) items.push({ src: 'SteamUnderground', title, href, img, tags, uploaded, uploadedText });
   });
 
-  // Enrich only meta (size/version/crack/uploaded fallback)
+  // Enrich with version/size/releaseGroup/steam/uploaded fallback
   await mapWithLimit(items, 3, async (it) => {
     try {
       const dhtml = await fetchWithCFBypass(it.href);
       const d$ = cheerio.load(dhtml);
 
       const v = extractGameVersion(d$, dhtml);
-      const c = extractCrack(d$, dhtml);
+      const rel = extractReleaseGroup(d$) || extractCrack(d$, dhtml);
       const sys = extractSysreq(d$);
       const storage = pickStorage(sys, dhtml);
       const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(dhtml)?.[1] || '';
       const finalSize = sizeRx || storage || '';
       if (finalSize) it.size = finalSize;
       if (v) { it.version = v; it.gameVersion = v; }
-      if (c) it.crack = c;
+      if (rel) {
+        it.releaseGroup = rel;
+        it.crack = rel;
+        it.crackedBy = rel;
+      }
 
       const steam = extractSteamLink(d$, dhtml);
       if (steam) it.steam = steam;
