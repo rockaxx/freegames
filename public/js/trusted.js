@@ -1,7 +1,6 @@
 // ===========================
 // TRUSTED DOWNLOADS SYSTEM
 // ===========================
-
 // Configuration - Add your items here
 const TRUSTED_ITEMS = [
   {
@@ -9,14 +8,15 @@ const TRUSTED_ITEMS = [
     folderName: "Internet Download Manager", // must match folder name in downloads/
     description: "The fastest download manager with resume capability and dynamic segmentation.",
     uploaded: "2025-01-15",
-    crackedBy: "K-D-A Team",
+    crackedBy: "Github-lstprjct",
+    readme: true,
     imageUrl: "https://www.internetdownloadmanager.com/register/IDMlib/images/idman_logos.png", // external URL
     // OR use local image:
     // localImage: "/assets/downloads/idm.jpg"
     // Leave imageUrl empty if using localImage
-    files: [/*
-      { name: "IDM_Setup.zip", size: "15.2 MB" },
-      { name: "IDM_Setup.7z", size: "12.8 MB" }*/
+    files: [
+      { name: "idm.zip", size: "11.9 MB" },
+      { name: "idm.7z", size: "11.9 MB" }
     ]
   },
   {
@@ -32,6 +32,7 @@ const TRUSTED_ITEMS = [
       { name: "netlimiter.zip", size: "8.6 MB" }
     ]
   },
+  /*
   {
     name: "Internet Download Manager",
     folderName: "Internet Download Manager", // must match folder name in downloads/
@@ -42,11 +43,12 @@ const TRUSTED_ITEMS = [
     // OR use local image:
     // localImage: "/assets/downloads/idm.jpg"
     // Leave imageUrl empty if using localImage
-    files: [/*
+    files: [
       { name: "IDM_Setup.zip", size: "15.2 MB" },
-      { name: "IDM_Setup.7z", size: "12.8 MB" }*/
+      { name: "IDM_Setup.7z", size: "12.8 MB" }
     ]
-  },
+  },*/
+  /*
   {
     name: "Internet Download Manager",
     folderName: "Internet Download Manager", // must match folder name in downloads/
@@ -57,11 +59,12 @@ const TRUSTED_ITEMS = [
     // OR use local image:
     // localImage: "/assets/downloads/idm.jpg"
     // Leave imageUrl empty if using localImage
-    files: [/*
+    files: [
       { name: "IDM_Setup.zip", size: "15.2 MB" },
-      { name: "IDM_Setup.7z", size: "12.8 MB" }*/
+      { name: "IDM_Setup.7z", size: "12.8 MB" }
     ]
   }
+  */
 ];
 
 // ===========================
@@ -106,6 +109,12 @@ function createDownloadCard(item) {
           <span class="meta-label">🔓 Cracked by:</span>
           <span class="meta-value">${item.crackedBy}</span>
         </div>
+        ${item.readme ? `
+        <div class="meta-item">
+          <span class="meta-label">Description file:</span>
+          <a class="meta-value" href="/trusted_downloads/${encodeURIComponent(item.folderName)}/README.md" target="_blank">README.md</a>
+        </div>
+        ` : ''}
       </div>
       
       <div class="trusted-card__downloads">
