@@ -333,7 +333,18 @@ function renderFavs() {
 
     grid.append(card);
   });
-
 }
+
+const search = document.getElementById('searchInput');
+if (search) {
+  search.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const q = search.value.trim();
+    if (!q) return;
+    window.location.href = `/?s=${encodeURIComponent(q)}`;
+  });
+}
+
 
 document.addEventListener('DOMContentLoaded', renderFavs);

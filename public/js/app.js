@@ -1,4 +1,5 @@
-// --- KONFIG ---
+
+// ----- HELPERS -----
 const DEFAULT_SOURCE = '/api/all'; // URL listingu, čo chceš scrapovať
 const API_ENDPOINT = '';            // náš serverový endpoint
 
@@ -1014,5 +1015,39 @@ document.addEventListener('click', e => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   attachEvents();
-  await loadFromScrape(); // čaká na dokončenie fetch
+  await loadFromScrape(); 
+
+  const params = new URLSearchParams(window.location.search);
+  const initialQuery = (params.get('s') || '').trim();
+
+  if (initialQuery) {
+    const input = document.getElementById('searchInput');
+    if (input) input.value = initialQuery;
+
+    closeStream();
+    showSkeletons(100);
+
+    openSSE(`/api/search/stream?q=${encodeURIComponent(initialQuery)}`, {
+      onItem(item) {
+        if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item);
+        const it = { id: Date.now() + Math.random(), ...item };
+        appendCards([it]);
+      },
+      onItems(itemsPayload) {
+        const items = (itemsPayload || []).map((it, idx) => ({ id: idx + 1, ...it }));
+        items.forEach(it => {
+          if (it.src === 'OnlineFix' && (it.version || it.build)) registerOF(it);
+        });
+        if (items.length) appendCards(items);
+      },
+      onDone() {
+        hideSkeletons();
+        const grid = document.getElementById('cardGrid');
+        if (!grid.querySelector('.card:not(.skeleton)')) {
+          grid.innerHTML = '<div style="padding:20px;color:var(--muted);">No results.</div>';
+        }
+      }
+    });
+  }
+
 });
