@@ -160,6 +160,7 @@ async function scrapeDetailSteamUnderground(url) {
 
   const gameVersion = extractGameVersion($, html);
   const crack = extractCrack($, html);
+  const releaseGroup = crack;
   const sysreq = extractSysreq($);
   const storage = pickStorage(sysreq, html);
   const finalSize = sizeRx || storage || '';
@@ -190,6 +191,7 @@ async function scrapeDetailSteamUnderground(url) {
     version: gameVersion,
     gameVersion,
     crack,
+    releaseGroup,
     sysreq,
     uploaded,       // raw date text
     uploadedText,   // "Uploaded: <date>"

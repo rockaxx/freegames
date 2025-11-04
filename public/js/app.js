@@ -112,14 +112,14 @@ function openModal(game) {
   if (game.tags?.length) info.push(el('p', { class: 'modal__tags' }, game.tags.join(', ')));
 
   const fields = [
-    ['Veľkosť', game.size],
-    ['Rok', game.year],
-    ['Verzia', game.version],
+    ['Size', game.size],
+    ['Year', game.year],
+    ['Version', game.version],
     ['Release group', game.releaseGroup],
     ['Developer', game.developer],
     ['Publisher', game.publisher],
-    ['Dátum vydania', game.releaseDate],
-    ['Recenzie', game.reviews],
+    ['Release date', game.releaseDate],
+    ['Reviews', game.reviews],
     ['Uploaded', game.uploaded],
   ];
   fields.forEach(([label, val]) => val && info.push(el('p', {}, `${label}: ${val}`)));
@@ -246,12 +246,15 @@ function openModal(game) {
   }
 
   // --- BUTTONS ---
-  const buttons = el('div', { class: 'modal__buttons' }, [
-    el('button', { class: 'btn btn--primary' }, 'Kúpiť'),
-    el('button', { class: 'btn btn--ghost' }, 'Do wishlistu')
-  ]);
+  // const buttons = el('div', { class: 'modal__buttons' }, [
+  //   el('button', { class: 'btn btn--primary' }, 'Kúpiť'),
+  //   el('button', { class: 'btn btn--ghost' }, 'Do wishlistu')
+  // ]);
 
-  body.append(cover, el('div', { class: 'modal__info' }, info), buttons);
+  body.append(
+    cover,
+    el('div', { class: 'modal__info' }, info) // buttons deleted
+  );
   modal.hidden = false;
 }
 
