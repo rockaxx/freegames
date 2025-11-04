@@ -101,15 +101,11 @@ function extractDownloadLinks($, baseUrl, fullHtml) {
 }
 
 async function scrapeDetailOnlineFix(url) {
-  console.log('OFX FETCH URL =', url);
 
   const html = await fetchRaw(url);
 
-  console.log('OFX RAW LENGTH =', html.length);
-  console.log('OFX RAW START =', html.slice(0, 400));
-
   if (!html) {
-    console.log('OFX HTML == EMPTY FAIL');
+
     return {
       src: 'OnlineFix', title: '', poster: '', desc: '', releaseDate: '',
       screenshots: [], trailer: '', downloadLinks: [], version:'', href: url
@@ -166,7 +162,6 @@ async function scrapeDetailOnlineFix(url) {
 async function scrapeOnlineFixSearch(q) {
   const url = `https://online-fix.me/index.php?do=search&subaction=search&story=${encodeURIComponent(q)}`;
   const html = await fetchRaw(url);
-  console.log(html);
   if (!html) return [];
 
   const $ = cheerio.load(html, { decodeEntities: false });
