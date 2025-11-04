@@ -4,30 +4,11 @@ const cheerio = require('cheerio');
 const { scrapeDetailRepackGames, scrapeRepackList } = require('./scrapers/repackgames');
 const { scrapeDetailAnker, scrapeAnker } = require('./scrapers/anker');
 const { parseGame3rb, scrapeDetail3rb } = require('./scrapers/game3rb');
-
-
-function fetchHtml(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const opts = {
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    };
-    https.get(opts, res => {
-      let buf = '';
-      res.on('data', c => buf += c);
-      res.on('end', () => resolve(buf));
-    }).on('error', reject);
-  });
-}
-
-
+const { fetchHtmlTor } = require('./scrapers/proxyFetch');
 
 // ------------------ MAIN SCRAPER ------------------
 async function scrape(url) {
-  const html = await fetchHtml(url);
+  const html = await fetchHtmlTor(url);
   const host = new URL(url).hostname;
 
   if (host.includes('ankergames.net')) {

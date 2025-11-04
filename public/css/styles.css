@@ -306,7 +306,7 @@ body{
   object-fit: contain;
 }
 .modal__version { font-weight: 700; color: #fff; }
-
+.modal__build { font-weight: 700; color: #fff; }
 /* ---------- download links ---------- */
 .modal__links {
   margin-top: 10px;

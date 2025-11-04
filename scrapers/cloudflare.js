@@ -7,8 +7,10 @@ const https = require('https');
 const zlib = require('zlib');
 const { URL } = require('url');
 const iconv = require('iconv-lite'); // decode cp1251 -> utf8
+const { SocksProxyAgent } = require('socks-proxy-agent');
 
-const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 20, timeout: 60000 });
+const keepAliveAgent = new SocksProxyAgent('socks5h://127.0.0.1:9050');
+
 const CACHE = new Map(); // key -> { ts, ttl, body }
 
 // Decompress into a Buffer (not string). Caller decides how to decode buffer -> string.

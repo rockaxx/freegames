@@ -1,27 +1,10 @@
-const https = require('node:https');
+
 const { URL } = require('node:url');
 const cheerio = require('cheerio');
-
-function fetchHtml(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const opts = {
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    };
-    https.get(opts, res => {
-      let buf = '';
-      res.on('data', c => buf += c);
-      res.on('end', () => resolve(buf));
-    }).on('error', reject);
-  });
-}
-
+const { fetchHtmlTor } = require('./proxyFetch');
 // ------------------ ANKER DETAIL ------------------
 async function scrapeDetailAnker(url) {
-  const html = await fetchHtml(url);
+  const html = await fetchHtmlTor(url);
   const $ = cheerio.load(html);
 
   const poster =

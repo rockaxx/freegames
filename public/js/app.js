@@ -63,13 +63,12 @@ function openSSE(url, { onItem, onItems, onDone } = {}) {
 
 
 function saveOFIndexLS() {
-  const obj = {};
-  for (const [sv, v] of OFIndex.entries()) {
-    obj[sv] = {
+  const byVersion = {};
+  for (const [sv, v] of OFVersionIndex.entries()) {
+    byVersion[sv] = {
       url: v.url || '',
       full: v.full || '',
       title: v.title || '',
-      // keep a tiny OnlineFix item snapshot for modal usage in Library
       item: v.item ? {
         src: 'OnlineFix',
         title: v.item.title || '',
@@ -80,23 +79,74 @@ function saveOFIndexLS() {
       } : null
     };
   }
-  localStorage.setItem(OF_LS_KEY, JSON.stringify(obj));
+
+  const byBuild = {};
+  for (const [b, v] of OFBuildIndex.entries()) {
+    byBuild[b] = {
+      url: v.url || '',
+      full: v.full || '',
+      title: v.title || '',
+      item: v.item ? {
+        src: 'OnlineFix',
+        title: v.item.title || '',
+        href: v.item.href || v.url || '',
+        poster: v.item.poster || '',
+        img: v.item.poster || '',
+        version: v.item.version || v.full || '',
+        build: v.item.build || ''
+      } : null
+    };
+  }
+
+  localStorage.setItem(OF_LS_KEY, JSON.stringify({ byVersion, byBuild }));
 }
+
 
 function seedOFIndexFromLS() {
   try {
     const raw = JSON.parse(localStorage.getItem(OF_LS_KEY) || '{}');
-    for (const [sv, meta] of Object.entries(raw)) {
-      OFIndex.set(sv.toLowerCase(), {
-        url: meta.url || '',
-        full: meta.full || '',
-        title: meta.title || '',
-        item: meta.item || null
-      });
+
+    // Backward compat (old structure)
+    if (raw && !raw.byVersion && typeof raw === 'object') {
+      for (const [sv, meta] of Object.entries(raw)) {
+        OFVersionIndex.set(sv.toLowerCase(), {
+          url: meta.url || '',
+          full: meta.full || '',
+          title: meta.title || '',
+          item: meta.item || null
+        });
+      }
+      return;
+    }
+
+    // New structure
+    OFVersionIndex.clear();
+    OFBuildIndex.clear();
+
+    if (raw?.byVersion) {
+      for (const [sv, meta] of Object.entries(raw.byVersion)) {
+        OFVersionIndex.set(sv.toLowerCase(), {
+          url: meta.url || '',
+          full: meta.full || '',
+          title: meta.title || '',
+          item: meta.item || null
+        });
+      }
+    }
+    if (raw?.byBuild) {
+      for (const [b, meta] of Object.entries(raw.byBuild)) {
+        OFBuildIndex.set(b, {
+          url: meta.url || '',
+          full: meta.full || '',
+          title: meta.title || '',
+          item: meta.item || null
+        });
+      }
     }
   } catch {}
 }
 seedOFIndexFromLS();
+
 
 function fav_load() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
@@ -132,12 +182,13 @@ function fav_remove(it) {
   const list = fav_load().filter(x => fav_key(x) !== key);
   fav_save(list);
 }
+
 function sanitizeGameForFav(g) {
   // ensure we keep original image (avoid nested /api/img)
   const img = (g.img && g.img.startsWith('/api/img')) ? g.img : (g.poster || g.img || '');
 
   // try find OF match now, so we persist overlay meta with the favourite
-  const of = matchOFForTitle(g.title);
+  const of = findOFForGame(g);
 
   return {
     src: g.src || '',
@@ -149,6 +200,7 @@ function sanitizeGameForFav(g) {
     size: g.size || '',
     year: g.year || '',
     version: g.version || '',
+    build: g.build || '',
     releaseGroup: g.releaseGroup || '',
     developer: g.developer || '',
     publisher: g.publisher || '',
@@ -173,7 +225,9 @@ function sanitizeGameForFav(g) {
         href: of.item.href || of.url || '',
         poster: of.item.poster || '',
         img: of.item.poster || '',
-        version: of.item.version || of.full || ''
+        version: of.item.version || of.full || '',
+        build: of.item.build || of.full || ''
+
       } : null
     } : null
   };
@@ -259,34 +313,109 @@ function shortVersion(v) {
   if (!m) return '';
   return m[0].split('.').slice(0, 3).join('.');
 }
-let OFIndex = new Map();  // short version -> { url, full, title, item }
+// Separate indices for fast lookup
+let OFVersionIndex = new Map(); // "0.37.5" -> meta
+let OFBuildIndex   = new Map(); // "18733"  -> meta
+
 let loadedGames = [];
 
 function resetOFState() {
-  OFIndex.clear();
+  OFVersionIndex.clear();
+  OFBuildIndex.clear();
   loadedGames = [];
 }
 
+
 function shortVersionStr(v) {
   if (!v) return '';
-  const m = String(v).match(/[0-9]+(?:\.[0-9]+)*/);
+  const m = String(v).match(/[0-9]+(?:\.[0-9]+){0,5}/);
   if (!m) return '';
-  return m[0].split('.').slice(0, 3).join('.'); // napr. 0.37.5
+  return m[0].split('.').slice(0, 3).join('.'); // e.g. 0.37.5
 }
+
+function normalizeBuild(b) {
+  if (!b) return '';
+  const m = String(b).match(/\b(\d{3,})\b/); // 3+ digits to avoid junk
+  return m ? m[1] : '';
+}
+
+// Try to find a build number inside arbitrary text/title
+function extractBuildFromText(t) {
+  if (!t) return '';
+  const m =
+    /\bbuild[:\s-]*([0-9]{3,})\b/i.exec(t) || // "Build: 18733" / "Build 18733"
+    /\((?:build|b)\s*([0-9]{3,})\)/i.exec(t)  || // "(Build 18733)" / "(b 18733)"
+    /\b([0-9]{5,})\b/.exec(t); // last-chance for big integers like 6821040
+  return m ? m[1] : '';
+}
+
+function findOFForGame(game) {
+  if (!game) return null;
+  // Never overlay on OF cards directly
+  if ((game.src || '').toLowerCase() === 'onlinefix') return null;
+
+  // 1) Try version on the game
+  const sv = shortVersionStr(game.version);
+  if (sv) {
+    const metaV = OFVersionIndex.get(sv.toLowerCase());
+    if (metaV) return { short: sv.toLowerCase(), ...metaV };
+  }
+
+  // 2) Try build from explicit field
+  let gb = normalizeBuild(game.build);
+  if (gb) {
+    const metaB = OFBuildIndex.get(gb);
+    if (metaB) return { short: gb, ...metaB };
+  }
+
+  // 3) Try build from title
+  gb = extractBuildFromText(game.title);
+  if (gb) {
+    const metaB = OFBuildIndex.get(gb);
+    if (metaB) return { short: gb, ...metaB };
+  }
+
+  // 4) Fallback: version present inside title (legacy)
+  const tl = (game.title || '').toLowerCase();
+  for (const [key, meta] of OFVersionIndex) {
+    if (key && tl.includes(key)) return { short: key, ...meta };
+  }
+
+  return null;
+}
+
+
 
 function registerOF(item) {
   if (!item || item.src !== 'OnlineFix') return;
-  const sv = shortVersionStr(item.version);
+
   const url = item.href || item.link || item.detail || item.url || '';
-  if (!sv || !url) return;
-  OFIndex.set(sv.toLowerCase(), {
+  if (!url) return;
+
+  const sv = shortVersionStr(item.version);
+  let build = normalizeBuild(item.build);
+  if (!build) {
+    // try to pick build from version/title if scraper stuffed it there
+    build = normalizeBuild(item.version) || normalizeBuild(item.title);
+  }
+
+  const meta = {
     url,
-    full: item.version,
+    full: item.version || '',
     title: item.title || '',
     item
-  });
-  // po každom novom OF zázname dooznač existujúce karty
+  };
+
+  // Index by version short (if present)
+  if (sv) OFVersionIndex.set(sv.toLowerCase(), meta);
+
+  // Index by build number (if present)
+  if (build) OFBuildIndex.set(build, meta);
+
+  // Re-tag existing cards after each new registration
   retagExistingCardsWithOF();
+  // Persist cache
+  saveOFIndexLS();
 }
 
 function matchOFForTitle(title) {
@@ -326,24 +455,50 @@ function createOFOverlay(ofMeta, preferImg) {
 function retagExistingCardsWithOF() {
   const cards = document.querySelectorAll('#cardGrid .card');
   cards.forEach(card => {
-    const title = card.querySelector('.card__title')?.textContent || '';
     const thumb = card.querySelector('.card__thumb');
-    if (!thumb || !title) return;
+    if (!thumb) return;
+    if (thumb.querySelector('.of-overlay')) return; // already tagged
 
-    const of = matchOFForTitle(title);
-    if (of && !thumb.querySelector('.of-overlay')) {
+    const src = (card.getAttribute('data-src') || '').toLowerCase();
+    if (src === 'onlinefix') return; // never tag OF itself
+
+    const dv = (card.getAttribute('data-version') || '').toLowerCase();
+    const db = (card.getAttribute('data-build') || '');
+
+    let meta = null;
+
+    // Prefer build index when present
+    if (db) meta = OFBuildIndex.get(db);
+
+    // Then version index
+    if (!meta && dv) meta = OFVersionIndex.get(dv);
+
+    // Fallback: title scan for build, then version
+    if (!meta) {
+      const title = card.querySelector('.card__title')?.textContent || '';
+      const gb = extractBuildFromText(title);
+      if (gb) meta = OFBuildIndex.get(gb);
+      if (!meta) {
+        const tl = title.toLowerCase();
+        for (const [key, m] of OFVersionIndex) {
+          if (key && tl.includes(key)) { meta = m; break; }
+        }
+      }
+    }
+
+    if (meta) {
       let preferImg = '';
       const bg = thumb.style.backgroundImage;
       if (bg) {
         const m = bg.match(/url\(["']?(.*?)["']?\)/i);
         if (m) preferImg = m[1];
       }
-      thumb.appendChild(createOFOverlay(of, preferImg));
-      console.log('[OFX][match]', of.short, '->', `"${title}"`);
+      const shortKey = db || dv || '';
+      thumb.appendChild(createOFOverlay({ short: shortKey, ...meta }, preferImg));
+      console.log('[OFX][retag]', shortKey || 'title', '→', (card.querySelector('.card__title')?.textContent || '').trim());
     }
   });
 }
-
 
 function normalizeImg(src) {
   if (!src) return '';
@@ -409,8 +564,6 @@ document.getElementById('srcFilter').addEventListener('click', e => {
     card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
 });
-
-
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
 
@@ -418,11 +571,13 @@ function appendCards(list = []) {
     if (!g.img && g.poster) g.img = g.poster;
     g.img = normalizeImg(g.img);
 
-    let badgeClass = 'badge--good';
-    if (!g.tags || !g.tags.length) badgeClass = 'badge--warn';
+    let badgeClass = (!g.tags || !g.tags.length) ? 'badge--warn' : 'badge--good';
     const tag0 = g.tags && g.tags.length ? g.tags[0] : 'Not Categorized';
 
-    const of = matchOFForTitle(g.title);
+    const sv = shortVersionStr(g.version);
+    const gb = normalizeBuild(g.build) || extractBuildFromText(g.version) || extractBuildFromText(g.title);
+
+    const of = findOFForGame(g);
     const overlay = of ? createOFOverlay(of, g.img) : null;
 
     const thumb = el('div', {
@@ -432,6 +587,9 @@ function appendCards(list = []) {
 
     const card = el('article', {
       class: 'card',
+      'data-version': sv || '',
+      'data-build': gb || '',
+      'data-src': g.src || '',
       onclick: () => openModal(g),
       oncontextmenu: (e) => showCardMenu(e, g)
     }, [
@@ -445,12 +603,10 @@ function appendCards(list = []) {
       ])
     ]);
 
-    // swap skeleton or append
     const sk = grid.querySelector('.card.skeleton');
     if (sk) sk.replaceWith(card);
     else grid.append(card);
 
-    // uložiť do pamäti
     loadedGames.push(g);
   });
 }
@@ -673,6 +829,9 @@ function openModal(game) {
     if (game.version) {
       info.push(el('p', { class: 'modal__version' }, `Version: ${game.version}`));
     }
+    if (game.build) {
+      info.push(el('p', { class: 'modal__build' }, `Build: ${game.build}`));
+    }
     // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
@@ -758,13 +917,23 @@ search.addEventListener('keydown', (e) => {
 
   openSSE(`/api/search/stream?q=${encodeURIComponent(q)}`, {
     onItem(item) {
+      // register OF version (no overlay on OF itself, just index)
+      if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item);
+
       const it = { id: Date.now() + Math.random(), ...item };
-      appendCards([it]); // your existing card adder
+      appendCards([it]);
     },
+
     onItems(itemsPayload) {
       const items = (itemsPayload || []).map((it, idx) => ({ id: idx + 1, ...it }));
+
+      items.forEach(it => {
+        if (it.src === 'OnlineFix' && (it.version || it.build)) registerOF(it);
+      });
+
       if (items.length) appendCards(items);
     },
+
     onDone() {
       hideSkeletons();
       const grid = document.getElementById('cardGrid');
@@ -773,6 +942,7 @@ search.addEventListener('keydown', (e) => {
       }
     }
   });
+
 });
 
 
@@ -782,13 +952,18 @@ async function loadFromScrape(){
 
   openSSE('/api/all/stream', {
     onItem(item) {
+      if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item); // keep
       const it = { id: Date.now() + Math.random(), ...item };
       appendCards([it]);
     },
-    onDone() {
-      hideSkeletons();
+    onItems(itemsPayload) {
+      const items = (itemsPayload || []).map((it, idx) => ({ id: idx + 1, ...it }));
+      items.forEach(it => { if (it.src === 'OnlineFix' && (it.version || it.build)) registerOF(it); });
+      if (items.length) appendCards(items);
     }
   });
+
+
 }
 
 
@@ -835,8 +1010,6 @@ document.addEventListener('click', e => {
   };
   document.addEventListener('keydown', onKey);
 });
-
-
 
 
 document.addEventListener('DOMContentLoaded', async () => {

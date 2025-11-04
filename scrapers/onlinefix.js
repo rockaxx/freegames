@@ -1,55 +1,66 @@
 // onlinefix.js
 const cheerio = require('cheerio');
-const https = require('https');
 const iconv = require('iconv-lite');
 
-function fetchRaw(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
-      }
-    }, res => {
-      const chunks = [];
-      res.on('data', c => chunks.push(c));
-      res.on('end', () => {
-        const buf = Buffer.concat(chunks);
-        const html = iconv.decode(buf, 'win1251'); // TU JE POINT
-        resolve(html);
-      });
-    }).on('error', reject);
-  });
-}
+const { fetchHtmlTor } = require('./proxyFetch');
+
 function absolutize(href, base) {
   try { return new URL(href, base).href; } catch { return href; }
 }
+// Helper: get text strictly inside .content (or '' if .content missing)
+function getContentText($, selector) {
+  const $c = $('.content');
+  if (!$c.length) return '';
+  return selector ? $c.find(selector).text() : $c.text();
+}
+
 function extractVersion($, html) {
+  // Only read from inside .content
   const blocks = [
-    $('.edited-block, .edited-block.right, .edit').text(),
-    $('[itemprop="articleBody"]').text(),
-    $('.single-content, .entry-content, article').text(),
-    $('body').text(),
-    html
-  ].map(t => (t || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    getContentText($, '.edited-block, .edited-block.right, .edit'),
+    getContentText($, '[itemprop="articleBody"], .single-content, .entry-content, article'),
+    getContentText($, null) // whole .content fallback
+  ]
+  .map(t => (t || '').replace(/\s+/g, ' ').trim())
+  .filter(Boolean);
 
   for (const t of blocks) {
-    let m =
+    const m =
       /\bupdated\b[^.]*?\bto\b[^.]*?\bversion\b\s*([0-9][\w.\-]+)/i.exec(t) ||
       /\bversion[:\s-]*([0-9][\w.\-]+)/i.exec(t) ||
       /обновлен\w*[^.]*?\bдо\b[^.]*?\bверс(?:ии|ия)?\s*([0-9][\w.\-]+)/i.exec(t) ||
       /версия[:\s-]*([0-9][\w.\-]+)/i.exec(t) ||
-      /\b(\d+\.\d+\.\d+\.\d+)\b/.exec(t);  // fallback for OFX
+      /\b(\d+\.\d+\.\d+\.\d+)\b/.exec(t); // dotted fallback
 
     if (m) return m[1].trim();
   }
-
   return '';
 }
 
+function extractBuild($, html) {
+  // Only read from inside .content
+  const blocks = [
+    getContentText($, '.edited-block, .edited-block.right, .edit'),
+    getContentText($, '[itemprop="articleBody"], .single-content, .entry-content, article'),
+    getContentText($, null) // whole .content fallback
+  ]
+  .map(t => (t || '').replace(/\s+/g, ' ').trim())
+  .filter(Boolean);
+
+  for (const t of blocks) {
+    const m =
+      /\bbuild[:\s-]*([0-9]{3,})\b/i.exec(t) ||      // "Build: 18733"
+      /\bbuild\s+([0-9]{3,})\b/i.exec(t) ||          // "build 18733"
+      /\b(\d+\.\d+\.\d+\.\d+)\b/.exec(t);            // dotted fallback if they misuse "build"
+
+    if (m) return m[1].trim();
+  }
+  return '';
+}
 
 async function scrapeDetailOnlineFix(url) {
 
-  const html = await fetchRaw(url);
+  const html = await fetchHtmlTor(url);
 
   if (!html) {
 
@@ -89,7 +100,8 @@ async function scrapeDetailOnlineFix(url) {
 
   const downloadLinks = "None, not logged in, because, Alexíni Bombombíni Guzíni Pipilíni cant make it"
 
-  const version = extractVersion($, html); // ← toto
+  const version = extractVersion($, html);
+  const build = extractBuild($, html);
 
   return {
     src: 'OnlineFix',
@@ -100,7 +112,8 @@ async function scrapeDetailOnlineFix(url) {
     screenshots,
     trailer,
     downloadLinks,
-    version,        // ← toto
+    version,
+    build,
     href: url
   };
 }
@@ -108,7 +121,7 @@ async function scrapeDetailOnlineFix(url) {
 
 async function scrapeOnlineFixSearch(q) {
   const url = `https://online-fix.me/index.php?do=search&subaction=search&story=${encodeURIComponent(q)}`;
-  const html = await fetchRaw(url);
+  const html = await fetchHtmlTor(url);
   if (!html) return [];
 
   const $ = cheerio.load(html, { decodeEntities: false });

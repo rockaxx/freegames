@@ -1,23 +1,6 @@
-const https = require('node:https');
 const { URL } = require('node:url');
 const cheerio = require('cheerio');
-
-function fetchHtml(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const opts = {
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    };
-    https.get(opts, res => {
-      let buf = '';
-      res.on('data', c => buf += c);
-      res.on('end', () => resolve(buf));
-    }).on('error', reject);
-  });
-}
+const { fetchHtmlTor } = require('./proxyFetch');
 
 function clean(s=''){ return s.replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(); }
 function normalizeUrl(u){ try{ return new URL(u).href; }catch{ return ''; } }
@@ -89,7 +72,7 @@ function dedupeLinks(raw) {
 
 
 async function scrapeDetail3rb(url) {
-  const html = await fetchHtml(url);
+  const html = await fetchHtmlTor(url);
   const $ = cheerio.load(html);
 
   const title = $('h1.post-title, h3.entry-title').first().text().trim();

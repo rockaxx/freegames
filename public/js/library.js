@@ -97,7 +97,7 @@ function openModal(g) {
   if (Array.isArray(g.tags) && g.tags.length) info.push(el('p', { class: 'modal__tags' }, g.tags.join(', ')));
 
   const fields = [
-    ['Size', g.size], ['Year', g.year], ['Version', g.version], ['Release group', g.releaseGroup],
+    ['Size', g.size], ['Year', g.year], ['Version', g.version], ['Build', g.build], ['Release group', g.releaseGroup],
     ['Developer', g.developer], ['Publisher', g.publisher],
     ['Release date', g.releaseDate], ['Reviews', g.reviews], ['Uploaded', g.uploaded]
   ];
@@ -227,6 +227,52 @@ document.addEventListener('keydown', (e) => {
 });
 window.addEventListener('resize', hideCtx);
 window.addEventListener('scroll', hideCtx, true);
+
+
+// === IMAGE PREVIEW (fullscreen zoom + zoom toggle) ===
+document.addEventListener('click', e => {
+  const img = e.target.closest('.modal__shot');
+  if (!img) return;
+
+  // vytvor overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'image-preview-overlay';
+
+  const big = document.createElement('img');
+  big.src = img.src;
+  overlay.appendChild(big);
+  document.body.appendChild(overlay);
+
+  let zoomed = false;
+
+  // toggle zoom on image click
+  big.addEventListener('click', ev => {
+    ev.stopPropagation(); // aby sa nezavrelo overlay
+    zoomed = !zoomed;
+    if (zoomed) {
+      big.style.transform = 'scale(1.8)'; // zväčšiť
+      big.style.cursor = 'zoom-out';
+    } else {
+      big.style.transform = 'scale(1)';
+      big.style.cursor = 'zoom-in';
+    }
+  });
+
+  // zatvoriť kliknutím mimo obrázka
+  overlay.addEventListener('click', ev => {
+    if (ev.target === overlay) overlay.remove();
+  });
+
+  // ESC zatváranie
+  const onKey = ev => {
+    if (ev.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+  };
+  document.addEventListener('keydown', onKey);
+});
+
 
 // ---------- render favourites ----------
 function renderFavs() {
