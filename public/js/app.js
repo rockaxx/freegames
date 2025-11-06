@@ -321,6 +321,64 @@ let OFBuildIndex   = new Map(); // "18733"  -> meta
 
 let loadedGames = [];
 
+// === SORT FUNCTIONALITY ===
+function sortGames(games, sortType) {
+  const gamesCopy = [...games];
+  
+  switch(sortType) {
+    case 'name-asc':
+      return gamesCopy.sort((a, b) => a.title.localeCompare(b.title, 'sk'));
+    case 'name-desc':
+      return gamesCopy.sort((a, b) => b.title.localeCompare(a.title, 'sk'));
+    case 'source-asc':
+      return gamesCopy.sort((a, b) => (a.src || '').localeCompare(b.src || '', 'sk'));
+    case 'source-desc':
+      return gamesCopy.sort((a, b) => (b.src || '').localeCompare(a.src || '', 'sk'));
+    default:
+      return gamesCopy;
+  }
+}
+
+function applySortToCards() {
+  const sortType = document.getElementById('sortSelect')?.value || 'default';
+  if (sortType === 'default') return;
+
+  const grid = document.getElementById('cardGrid');
+  const cards = Array.from(grid.querySelectorAll('.card:not(.skeleton)'));
+  
+  if (cards.length === 0) return;
+
+  // Extract data from DOM cards
+  const cardsWithData = cards.map(card => ({
+    element: card,
+    title: card.querySelector('.card__title')?.textContent || '',
+    src: card.querySelector('.card__meta span:first-child')?.textContent || ''
+  }));
+
+  // Sort based on selected type
+  let sorted;
+  switch(sortType) {
+    case 'name-asc':
+      sorted = cardsWithData.sort((a, b) => a.title.localeCompare(b.title, 'sk'));
+      break;
+    case 'name-desc':
+      sorted = cardsWithData.sort((a, b) => b.title.localeCompare(a.title, 'sk'));
+      break;
+    case 'source-asc':
+      sorted = cardsWithData.sort((a, b) => a.src.localeCompare(b.src, 'sk'));
+      break;
+    case 'source-desc':
+      sorted = cardsWithData.sort((a, b) => b.src.localeCompare(a.src, 'sk'));
+      break;
+    default:
+      sorted = cardsWithData;
+  }
+
+  // Remove all cards and re-append in sorted order
+  cards.forEach(card => card.remove());
+  sorted.forEach(item => grid.appendChild(item.element));
+}
+
 function resetOFState() {
   OFVersionIndex.clear();
   OFBuildIndex.clear();
@@ -572,6 +630,7 @@ document.getElementById('srcFilter').addEventListener('click', e => {
 
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
+  const sortType = document.getElementById('sortSelect')?.value || 'default';
 
   list.forEach(g => {
 
@@ -616,6 +675,11 @@ function appendCards(list = []) {
 
     loadedGames.push(g);
   });
+
+  // Apply sort if not default
+  if (sortType !== 'default') {
+    applySortToCards();
+  }
 }
 
 
@@ -1035,6 +1099,15 @@ document.addEventListener('click', e => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   attachEvents();
+  
+  // Event listener pre sort dropdown
+  const sortSelect = document.getElementById('sortSelect');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      applySortToCards();
+    });
+  }
+  
   await loadFromScrape(); 
 
   const params = new URLSearchParams(window.location.search);

@@ -108,6 +108,16 @@
           <button data-src="Game3RB">Game3RB</button>
           <button data-src="SteamUnderground">SteamUnd.</button>
         </div>
+        <div class="sort-controls" style="margin: 15px 0; display: flex; align-items: center; gap: 10px;">
+          <label style="color: #fff;">Sort by:</label>
+          <select id="sortSelect" style="padding: 8px; background: #1a1d29; color: #fff; border: 1px solid #2a2d3a; border-radius: 4px;">
+              <option value="default">Default</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="source-asc">Source (A-Z)</option>
+              <option value="source-desc">Source (Z-A)</option>
+          </select>
+        </div>
         <a class="shelf__more" href="#">View all</a>
       </div>
       <div class="cards" id="cardGrid"></div>
@@ -124,6 +134,7 @@
     <div id="modalBody" class="modal__body"></div>
   </div>
 </div>
+
 
 
 <script src="/js/app.js"></script>
