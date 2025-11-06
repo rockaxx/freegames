@@ -1,4 +1,7 @@
-// steamunderground.js
+// steamunderground.js (fixed)
+// Keeps new features (pagination + streaming), restores full metadata (releaseGroup, crackedBy, etc.)
+// All code and comments are in English.
+
 const cheerio = require('cheerio');
 const { fetchWithCFBypass } = require('./cloudflare');
 
@@ -75,7 +78,7 @@ function extractCrack($, html) {
   return '';
 }
 
-// Exact extractor for the SteamUnderground block shown in user's example
+// Exact extractor for the SteamUnderground block shown in previous examples
 function extractReleaseGroup($) {
   let v = clean($('.releaseGroup .releaseGroupValue').first().text());
   if (v) return v;
@@ -180,6 +183,31 @@ async function mapWithLimit(items, limit, fn) {
   return out;
 }
 
+// Merge enriched detail fields into a list-card item with a stable shape
+function mergeCardFields(base, detail) {
+  const out = { ...base };
+  if (detail) {
+    if (detail.version) out.version = detail.version;
+    if (detail.gameVersion) out.gameVersion = detail.gameVersion;
+    if (detail.releaseGroup) {
+      out.releaseGroup = detail.releaseGroup;
+      out.crack = detail.releaseGroup;
+      out.crackedBy = detail.releaseGroup;
+    } else if (detail.crack) {
+      out.crack = detail.crack;
+      out.crackedBy = detail.crack;
+      out.releaseGroup = detail.crack;
+    }
+    if (detail.size) out.size = detail.size;
+    if (detail.steam) out.steam = detail.steam;
+    if (!out.uploaded && detail.uploaded) {
+      out.uploaded = detail.uploaded;
+      out.uploadedText = detail.uploadedText || (detail.uploaded ? `Uploaded: ${detail.uploaded}` : '');
+    }
+  }
+  return out;
+}
+
 // ---------- DETAIL ----------
 async function scrapeDetailSteamUnderground(url) {
   const html = await fetchWithCFBypass(url);
@@ -265,6 +293,8 @@ async function scrapeDetailSteamUnderground(url) {
     steam
   };
 }
+
+// ---------- SEARCH (with pagination, then enrich) ----------
 async function scrapeSteamUndergroundSearch(q) {
   const items = [];
 
@@ -304,12 +334,11 @@ async function scrapeSteamUndergroundSearch(q) {
       }
     });
 
-    if (pageItems.length === 0) break; // tu končíme paging
-
+    if (pageItems.length === 0) break; // end paging
     items.push(...pageItems);
   }
 
-  // teraz enrichujeme až po paginatione
+  // Enrich after pagination (version, releaseGroup, size, steam, uploaded fallback)
   await mapWithLimit(items, 3, async (it) => {
     try {
       const dhtml = await fetchWithCFBypass(it.href);
@@ -328,12 +357,26 @@ async function scrapeSteamUndergroundSearch(q) {
 
       const steam = extractSteamLink(d$, dhtml);
       if (steam) it.steam = steam;
+
+      if (!it.uploaded) {
+        const up =
+          clean(d$('.post-date').first().text()) ||
+          clean(d$('time.entry-date').first().text()) ||
+          clean(d$('.post-meta time').first().text()) ||
+          '';
+        if (up) {
+          it.uploaded = up;
+          it.uploadedText = `Uploaded: ${up}`;
+        }
+      }
     } catch (_) {}
     return it;
   });
 
   return items;
 }
+
+// ---------- STREAM (per-item progressive, with full metadata for cards) ----------
 async function streamSteamUnderground(q, onItem) {
   for (let page = 1; page < 999; page++) {
     const url = `https://steamunderground.net/page/${page}/?s=${encodeURIComponent(q)}`;
@@ -348,12 +391,26 @@ async function streamSteamUnderground(q, onItem) {
       const href = $el.find('.post-c-wrap a').attr('href');
       const img = bestImgUrl($el.find('.thumb img').first());
       const title = clean($el.find('.post-c-wrap a').text());
-      if (href && title) batch.push({ title, href, img });
+
+      const uploaded =
+        clean($el.find('.post-date').first().text()) ||
+        clean($el.find('time.entry-date').first().text()) ||
+        '';
+      const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
+
+      let tags = [];
+      $el.find('.post-category a').each((_, a) => {
+        const tag = clean($(a).text());
+        if (tag) tags.push(tag);
+      });
+      tags = tags.filter(t => t.toLowerCase() !== 'uncategorized');
+
+      if (href && title) batch.push({ title, href, img, tags, uploaded, uploadedText });
     });
 
     if (batch.length === 0) break;
 
-    // stream per item with detail immediately
+    // stream per item with detail immediately; include full card shape
     await mapWithLimit(batch, 3, async (g) => {
       try {
         const dhtml = await fetchWithCFBypass(g.href);
@@ -364,22 +421,31 @@ async function streamSteamUnderground(q, onItem) {
         const storage = pickStorage(sys, dhtml);
         const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(dhtml)?.[1] || '';
         const finalSize = sizeRx || storage || '';
+        const steam = extractSteamLink(d$, dhtml);
 
         const out = {
           src: 'SteamUnderground',
           title: g.title,
           href: g.href,
           img: g.img,
+          tags: g.tags || [],
+          uploaded: g.uploaded || '',
+          uploadedText: g.uploadedText || (g.uploaded ? `Uploaded: ${g.uploaded}` : ''),
           version: v || '',
+          gameVersion: v || '',
+          releaseGroup: rel || '',
           crack: rel || '',
+          crackedBy: rel || '',
           size: finalSize || '',
+          steam: steam || ''
         };
 
         await onItem(out);
-      } catch (e) {}
+      } catch (e) {
+        // swallow to continue streaming others
+      }
     });
   }
 }
-
 
 module.exports = { scrapeSteamUndergroundSearch, scrapeDetailSteamUnderground, streamSteamUnderground };
