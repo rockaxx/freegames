@@ -1,0 +1,115 @@
+/* ============================
+   COMMUNITY (Threads / Rep)
+============================ */
+.select {
+  padding:8px 10px;
+  background:var(--panel-2);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+}
+
+.form-col { display:flex; flex-direction:column; gap:10px; }
+.form-col input, .form-col select, .form-col textarea {
+  background:linear-gradient(180deg,#172231,#121b26);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:14px;
+}
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+.community { margin-top:22px; }
+.thread-list { display:flex; flex-direction:column; gap:12px; }
+
+.thread-card {
+  display:flex; gap:12px;
+  background:linear-gradient(180deg,#132233,#112031);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:12px;
+  box-shadow: var(--shadow);
+}
+.thread-votes {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  min-width:48px;
+}
+.vote-btn {
+  width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,.12);
+  background:transparent; color:var(--text); cursor:pointer; font-weight:800;
+}
+.vote-btn--active { background:rgba(102,192,244,.2); border-color:rgba(102,192,244,.4); }
+.vote-score { font-weight:800; }
+
+.thread-main { flex:1; display:flex; flex-direction:column; gap:8px; }
+.thread-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.thread-title { margin:0; font-size:18px; font-weight:800; color:#fff; }
+.thread-tags { display:flex; gap:6px; flex-wrap:wrap; }
+.tag { font-size:12px; border:1px solid rgba(255,255,255,.12); padding:2px 6px; border-radius:6px; }
+.tag--muted { color:var(--muted); }
+
+.thread-body { margin:2px 0 6px; color:var(--text); }
+.thread-footer { display:flex; gap:8px; }
+
+.btn.sm { padding:6px 10px; font-size:12px; border-radius:8px; }
+
+.empty-state {
+  margin:20px 0; padding:18px;
+  border:1px dashed rgba(255,255,255,.15);
+  border-radius:12px; color:var(--muted);
+}
+
+/* Game reputation line inside a thread */
+.rep-line {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:8px 10px;
+}
+.rep-actions { display:flex; gap:8px; }
+.rep-btn {
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent; color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:800;
+}
+.rep-btn--up:hover { border-color:rgba(61,184,135,.5); color:var(--success); }
+.rep-btn--down:hover { border-color:rgba(217,83,79,.5); color:var(--danger); }
+
+/* Pills for reputation board */
+.rep-board { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.rep-pill {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:8px 10px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg,#122233,#0f1824);
+}
+.rep-pill--up { border-color:rgba(61,184,135,.5); }
+.rep-pill--down { border-color:rgba(217,83,79,.5); }
+.rep-pill strong { font-weight:900; }
+.rep-pill--tight { gap:6px; }
+.rep-pill__actions { display:flex; gap:6px; }
+
+/* Comments drawer */
+.drawer {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.5);
+  display: grid; place-items: center;
+}
+.drawer[hidden] { display:none; }
+.drawer__panel {
+  width:min(720px, 92vw); max-height:90vh;
+  background:linear-gradient(180deg,#101822,#0f1923);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px; overflow:hidden; box-shadow:var(--shadow);
+  display:flex; flex-direction:column;
+}
+.drawer__header { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08); }
+.comments { padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+.comment { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:8px 10px; }
+.comment__head { display:flex; gap:8px; font-size:12px; color:var(--muted); }
+.comment__author { font-weight:800; color:#fff; }
+.comment__body { margin-top:6px; }
+.comment-form { display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,.08); }
+.comment-form input {
+  flex:1; background:linear-gradient(180deg,#172231,#121b26); color:var(--text);
+  border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px 10px;
+}

@@ -8,14 +8,26 @@ const { registerSearchStream } = require('./api');
 const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth'); // <<< NEW
 const crypto = require('crypto');
 
+const { initCommunityTables } = require('./database/community_db');
+
+initCommunityTables().catch(err => console.error('DB init failed:', err));
+
 const app = express();
-registerSearchStream(app);
+
 const PORT = process.env.PORT || 4021;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
-
+app.use((req, _res, next) => {
+  const cookies = parseCookies(req);
+  const tok = cookies.sid;
+  const payload = verifyToken(tok);
+  if (payload) req.user = { id: payload.id, username: payload.username, email: payload.email };
+  next();
+});
 app.disable('x-powered-by');
 app.use(express.json());
+registerSearchStream(app);
+app.use(require('./api_community'));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 // Attach req.user if valid cookie present
@@ -52,8 +64,14 @@ app.post('/api/register', async (req,res) => {
     const { username, email, password } = req.body || {};
     if(!username || !email || !password) return res.status(400).json({ ok:false, error:'missing fields' });
 
-    // TODO: hash password before storing (bcrypt). For now raw (dev).
-    const id = await createUser(username, email, password);
+    // server.js (inside /api/register)
+    const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
+
+    const salt = randomBytes(16);
+    const hash = scryptSync(password, salt, 64);
+    const stored = salt.toString('hex') + ':' + hash.toString('hex');
+    const id = await createUser(username, email, stored);
+
 
     const token = signToken({ id, username, email });
     const cookie = buildCookie('sid', token, { secure: IS_PROD, sameSite: 'Lax', maxAgeSec: 60*60*24*7 });
@@ -73,8 +91,11 @@ app.post('/api/login', async (req,res) => {
     const user = await getUser(username);
     if(!user) return res.status(401).json({ ok:false, error:'invalid' });
 
-    // TODO: compare hashed; now raw
-    if(user.password !== password) return res.status(401).json({ ok:false, error:'invalid' });
+    const [saltHex, hashHex] = String(user.password).split(':');
+    const salt = Buffer.from(saltHex, 'hex');
+    const hash = Buffer.from(hashHex, 'hex');
+    const test = scryptSync(password, salt, 64);
+    if (!timingSafeEqual(hash, test)) return res.status(401).json({ ok:false, error:'invalid' });
 
     const token = signToken({ id: user.id, username: user.username, email: user.email });
     const cookie = buildCookie('sid', token, { secure: IS_PROD, sameSite: 'Lax', maxAgeSec: 60*60*24*7 });
