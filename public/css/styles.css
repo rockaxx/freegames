@@ -86,8 +86,46 @@ body{
 .sidebar__item{
   display:block; padding:8px 10px; border-radius:8px; color:var(--text); text-decoration:none;
 }
-.sidebar__item:hover{background:rgba(255,255,255,.06)}
-.sidebar__item.active{background:rgba(102,192,244,.15); outline:1px solid rgba(102,192,244,.25)}
+/* SIDEBAR ITEMS FIX */
+.sidebar__item{
+  display:block;
+  width:100%;
+  text-align:left;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,#132233,#101a27);
+  color:var(--text);
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:all .15s ease-in-out;
+  margin-bottom: 8px;
+}
+
+.sidebar__item:hover{
+  border-color:rgba(102,192,244,.35);
+  color:#9be2ff;
+  background:linear-gradient(180deg,#1b2f45,#152638);
+}
+
+.sidebar__item.active{
+  border-color:rgba(102,192,244,.5);
+  background:linear-gradient(180deg,#1d3450,#182a3f);
+  color:#9be2ff;
+  box-shadow:0 0 12px rgba(102,192,244,.15);
+}
+/* remove bullet dots */
+.sidebar__list{
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+
+.sidebar__list li{
+  list-style:none;
+}
+
 .sidebar__games{display:flex; flex-direction:column; gap:6px; margin-top:8px}
 .game-pill{
   display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px;

@@ -29,7 +29,31 @@
   </div>
   <div class="topbar__right">
     <div class="avatar" id="accountBtn" title="Your account">A</div>
+    <div id="accountBox" class="account-box" hidden>
+      <div class="account-tabs">
+        <button id="tabLogin" class="tab active">Login</button>
+        <button id="tabRegister" class="tab">Register</button>
+      </div>
+
+      <!-- login -->
+      <form id="loginForm" class="account-form">
+        <input type="text" placeholder="Username" required>
+        <input type="password" placeholder="Password" required>
+        <button class="btn btn--primary" type="submit">Sign In</button>
+      </form>
+
+      <!-- register -->
+      <form id="registerForm" class="account-form" hidden>
+        <input type="text" placeholder="Username" required>
+        <input type="email" placeholder="Email" required>
+        <input type="password" placeholder="Password" required>
+        <input type="password" placeholder="Confirm Password" required>
+        <button class="btn btn--primary" type="submit">Create Account</button>
+      </form>
+    </div>
   </div>
+  </div>
+
 </header>
 
 <div class="layout">

@@ -27,11 +27,7 @@ router.get('/api/community/threads', async (req,res)=>{
     const q = (req.query.q||'').trim();
     const sort = (req.query.sort||'new').trim();
     const { rows, topGames } = await listThreads({ category, q, sort });
-    const mapped = rows.map(r => ({
-      ...r,
-      author: r.user_id ? `User#${r.user_id}` : 'Anonymous'
-    }));
-    return res.json({ ok:true, threads:mapped, topGames });
+    return res.json({ ok:true, threads: rows, topGames });
   } catch(e){ return res.status(500).json({ ok:false }); }
 });
 

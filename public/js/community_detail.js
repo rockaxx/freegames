@@ -50,7 +50,7 @@ function renderThread() {
   els.voteDown.classList.toggle('vote-btn--active', thread.myVote === -1);
 
   // Game reputation: show and lock if already repped
-  if (thread.game_title) {
+  if (thread.game_title && thread.game_title.trim() !== '') {
     els.repWrap.hidden = false;
     els.repTitle.textContent = thread.game_title;
     els.repScore.textContent = (thread.game_rep_score>=0?'+':'') + (thread.game_rep_score||0);

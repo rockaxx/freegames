@@ -75,7 +75,6 @@ async function createThread({ userId, title, body, category, gameKey, gameTitle 
   );
   return r.lastID;
 }
-
 async function listThreads({ category='all', q='', sort='new' }) {
   const where = [];
   const params = [];
@@ -88,39 +87,48 @@ async function listThreads({ category='all', q='', sort='new' }) {
   }
   const W = where.length ? ('WHERE ' + where.join(' AND ')) : '';
 
-  // score = SUM(thread_votes.value), comments_count, game_rep_score
-  const sql = `
+  // No myVote join here (list is anonymous). myVote riešime v detaile, kde máme userId.
+  const rows = await all(`
     SELECT
       t.*,
-      COALESCE(tv.score,0) AS score,
-      COALESCE(cm.cnt,0) AS comments_count,
-      COALESCE(gr.score,0) AS game_rep_score
+      COALESCE(tv.score,0)                 AS score,
+      COALESCE(cm.cnt,0)                   AS comments_count,
+      COALESCE(gr.score,0)                 AS game_rep_score,
+      NULL                                 AS myVote,
+      COALESCE(u.username,'Anonymous')     AS author
     FROM threads t
-    LEFT JOIN (
-      SELECT thread_id, SUM(value) AS score FROM thread_votes GROUP BY thread_id
-    ) tv ON tv.thread_id = t.id
-    LEFT JOIN (
-      SELECT thread_id, COUNT(*) AS cnt FROM comments GROUP BY thread_id
-    ) cm ON cm.thread_id = t.id
-    LEFT JOIN (
-      SELECT game_key, SUM(value) AS score FROM game_rep GROUP BY game_key
-    ) gr ON gr.game_key = t.game_key
+    LEFT JOIN (SELECT thread_id, SUM(value) AS score FROM thread_votes GROUP BY thread_id) tv
+      ON tv.thread_id = t.id
+    LEFT JOIN (SELECT thread_id, COUNT(*) AS cnt FROM comments GROUP BY thread_id) cm
+      ON cm.thread_id = t.id
+    LEFT JOIN (SELECT game_key, SUM(value) AS score FROM game_rep GROUP BY game_key) gr
+      ON gr.game_key = t.game_key
+    LEFT JOIN users u
+      ON u.id = t.user_id
     ${W}
-  `;
+  `, params);
 
-  const rows = await all(sql, params);
+  if (sort === 'top') {
+    rows.sort((a,b)=> (b.score|0) - (a.score|0));
+  } else if (sort === 'hot') {
+    rows.sort((a,b)=> ((b.score|0)*0.7 + new Date(b.created_at).getTime())
+                    - ((a.score|0)*0.7 + new Date(a.created_at).getTime()));
+  } else {
+    rows.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+  }
 
-  // Sorting
-  if (sort === 'top') rows.sort((a,b)=> (b.score|0)-(a.score|0));
-  else if (sort === 'hot') rows.sort((a,b)=> ((b.score*0.7 + (new Date(b.created_at).getTime())) - (a.score*0.7 + (new Date(a.created_at).getTime()))));
-  else rows.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
-
-  // top games for sidebar
-  const topGames = await all(`SELECT game_key, MAX(game_title) AS game_title, SUM(value) AS score
-                              FROM game_rep GROUP BY game_key ORDER BY score DESC LIMIT 10;`);
+  const topGames = await all(`
+    SELECT game_key, MAX(game_title) AS game_title, SUM(value) AS score
+    FROM game_rep
+    WHERE game_key IS NOT NULL AND TRIM(game_key) <> ''
+    GROUP BY game_key
+    ORDER BY score DESC
+    LIMIT 10
+  `);
 
   return { rows, topGames };
 }
+
 
 async function voteThread({ userId, threadId, delta }) {
   // write-once semantics
@@ -144,15 +152,17 @@ async function createComment({ userId, threadId, body }) {
 }
 
 async function listComments(threadId) {
-  // join users table if exists
-  const rows = await all(`
-    SELECT c.*, COALESCE(u.username, 'User#'||c.user_id) AS author
+    const rows = await all(`
+    SELECT
+        c.*,
+        COALESCE(u.username,'Anonymous') AS author
     FROM comments c
     LEFT JOIN users u ON u.id = c.user_id
-    WHERE c.thread_id=?
+    WHERE c.thread_id = ?
     ORDER BY c.created_at ASC
-  `, [threadId]);
-  return rows;
+    `, [threadId]);
+    return rows;
+
 }
 
 async function repGame({ userId, gameKey, gameTitle, delta }) {
@@ -178,33 +188,36 @@ async function getGameRep(gameKey) {
 }
 
 async function getThreadById(threadId, userId=null) {
-  const row = await all(`
+    const row = await all(`
     SELECT
-      t.*,
-      COALESCE(tv.score,0)    AS score,
-      COALESCE(cm.cnt,0)      AS comments_count,
-      COALESCE(gr.score,0)    AS game_rep_score,
-      mv.value                AS myVote,
-      mr.value                AS myRep
+        t.*,
+        COALESCE(tv.score,0)      AS score,
+        COALESCE(cm.cnt,0)        AS comments_count,
+        COALESCE(gr.score,0)      AS game_rep_score,
+        mv.value                  AS myVote,
+        mr.value                  AS myRep,
+        COALESCE(u.username,'Anonymous') AS author
     FROM threads t
     LEFT JOIN (SELECT thread_id, SUM(value) AS score FROM thread_votes GROUP BY thread_id) tv
-      ON tv.thread_id = t.id
+        ON tv.thread_id = t.id
     LEFT JOIN (SELECT thread_id, COUNT(*) AS cnt FROM comments GROUP BY thread_id) cm
-      ON cm.thread_id = t.id
+        ON cm.thread_id = t.id
     LEFT JOIN (SELECT game_key, SUM(value) AS score FROM game_rep GROUP BY game_key) gr
-      ON gr.game_key = t.game_key
+        ON gr.game_key = t.game_key
     LEFT JOIN thread_votes mv
-      ON mv.thread_id = t.id AND mv.user_id = ?
+        ON mv.thread_id = t.id AND mv.user_id = ?
     LEFT JOIN game_rep mr
-      ON mr.game_key = t.game_key AND mr.user_id = ?
+        ON mr.game_key = t.game_key AND mr.user_id = ?
+    LEFT JOIN users u
+        ON u.id = t.user_id
     WHERE t.id = ?
     LIMIT 1
-  `, [userId||-1, userId||-1, threadId]);
+    `, [userId || -1, userId || -1, threadId]);
 
-  const result = row && row[0];
-  if (!result) return null;
-  result.author = result.user_id ? `User#${result.user_id}` : 'Anonymous';
-  return result;
+    const result = row && row[0];
+    if (!result) return null;
+    return result; 
+
 }
 
 

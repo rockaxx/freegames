@@ -6,7 +6,7 @@ const { createUser, getUser } = require('./database/query');
 const { registerSearchStream } = require('./api');
 
 const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth'); // <<< NEW
-const crypto = require('crypto');
+const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
 
 const { initCommunityTables } = require('./database/community_db');
 
@@ -17,6 +17,9 @@ const app = express();
 const PORT = process.env.PORT || 4021;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+app.disable('x-powered-by');
+app.use(express.json());
+
 app.use((req, _res, next) => {
   const cookies = parseCookies(req);
   const tok = cookies.sid;
@@ -24,8 +27,7 @@ app.use((req, _res, next) => {
   if (payload) req.user = { id: payload.id, username: payload.username, email: payload.email };
   next();
 });
-app.disable('x-powered-by');
-app.use(express.json());
+
 registerSearchStream(app);
 app.use(require('./api_community'));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
@@ -68,8 +70,6 @@ app.post('/api/register', async (req,res) => {
     const { username, email, password } = req.body || {};
     if(!username || !email || !password) return res.status(400).json({ ok:false, error:'missing fields' });
 
-    // server.js (inside /api/register)
-    const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
 
     const salt = randomBytes(16);
     const hash = scryptSync(password, salt, 64);

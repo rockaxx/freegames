@@ -2,7 +2,6 @@
 // ----- HELPERS -----
 const DEFAULT_SOURCE = '/api/all'; // URL listingu, čo chceš scrapovať
 const API_ENDPOINT = '';            // náš serverový endpoint
-let filterLocked = false;
 
 // --- progressive search state ---
 let currentES = null;
@@ -608,7 +607,6 @@ function hideSkeletons() {
   skels.forEach(s => s.remove());
 }
 document.getElementById('srcFilter').addEventListener('click', e => {
-  if (filterLocked) return;
 
   const btn = e.target.closest('button');
   if (!btn) return;
@@ -987,8 +985,6 @@ search.addEventListener('keydown', (e) => {
   }
 
   showSkeletons(100);
-  filterLocked = true;
-  document.getElementById('srcFilter').classList.add('disabled');
 
   openSSE(`/api/search/stream?q=${encodeURIComponent(q)}`, {
     onItem(item) {
@@ -1011,8 +1007,6 @@ search.addEventListener('keydown', (e) => {
 
     onDone() {
       hideSkeletons();
-      filterLocked = false;
-      document.getElementById('srcFilter').classList.remove('disabled');
 
       const grid = document.getElementById('cardGrid');
       if (!grid.querySelector('.card:not(.skeleton)')) {
@@ -1027,8 +1021,6 @@ search.addEventListener('keydown', (e) => {
 async function loadFromScrape(){
   closeStream();
   showSkeletons(100);
-  filterLocked = true;
-  document.getElementById('srcFilter').classList.add('disabled');
 
   openSSE('/api/all/stream', {
     onItem(item) {
@@ -1045,8 +1037,6 @@ async function loadFromScrape(){
     },
     onDone() {
       hideSkeletons();
-      filterLocked = false;
-      document.getElementById('srcFilter').classList.remove('disabled');
     }
   });
 }
@@ -1119,8 +1109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     closeStream();
     showSkeletons(100);
-    filterLocked = true;
-    document.getElementById('srcFilter').classList.add('disabled');
 
     openSSE(`/api/search/stream?q=${encodeURIComponent(initialQuery)}`, {
       onItem(item) {
@@ -1137,8 +1125,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       },
       onDone() {
         hideSkeletons();
-        filterLocked = false;
-        document.getElementById('srcFilter').classList.remove('disabled');
 
         const grid = document.getElementById('cardGrid');
         if (!grid.querySelector('.card:not(.skeleton)')) {

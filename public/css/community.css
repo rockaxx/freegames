@@ -119,3 +119,337 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+/* --- VOTE COLUMN: perfect centering + better hit boxes --- */
+.thread-votes,
+.thread-detail__votes{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:56px;           /* fixed, enough for finger hit */
+  min-width:56px;
+}
+.thread-detail{ gap:18px; }
+.thread-detail h1{ margin:0 0 6px; }
+.vote-btn--up.vote-btn--active{ color:#9be2ff; }
+.vote-btn--down.vote-btn--active{ color:#ffd0d0; }
+
+.vote-btn{
+  display:grid;
+  place-items:center;   /* absolute centering */
+  width:36px;
+  height:36px;
+  padding:0;
+  line-height:1;        /* remove font baseline offset */
+  font-size:14px;
+  font-weight:800;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg,#152234,#0f1826);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform .08s ease, border-color .15s ease, box-shadow .15s ease;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+.vote-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(102,192,244,.35);
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+
+.vote-btn--active{
+  background:linear-gradient(180deg,rgba(102,192,244,.25),rgba(25,153,255,.18));
+  border-color: rgba(102,192,244,.5);
+}
+
+.vote-score{
+  font-weight:900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing:.3px;
+}
+
+/* --- LINKABLE CARD + hover micro-interactions --- */
+.thread-card--link{ cursor:pointer; }
+.thread-card--link:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: rgba(102,192,244,.25);
+}
+
+/* --- SHOW DETAILS toggle --- */
+.show-details{
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent;
+  color:var(--text);
+  padding:6px 10px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:12px;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.show-details:hover{
+  background: rgba(255,255,255,.08);
+}
+
+/* clamp helper (keep existing) + un-clamp on expand */
+.clamp-3{
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  line-clamp:3;              /* standard for newer engines */
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.thread-card.is-expanded .thread-body{
+  display:block;
+  -webkit-line-clamp:unset;
+  line-clamp:unset;
+  overflow:visible;
+}
+
+/* disable state for one-shot votes/rep (already present, reinforce) */
+.vote-btn[disabled],
+.rep-btn[disabled]{
+  opacity:.5;
+  cursor:not-allowed;
+  pointer-events:none;
+}
+/* force hide if hidden attribute is present */
+[hidden]{
+  display:none !important;
+}
+/* ================================
+   BEAUTIFIED COMMUNITY UI (REDESIGN)
+   - pretty inputs
+   - collapsible composer (create thread)
+   - toolbar with filters
+   - polished thread detail + comments
+=================================== */
+
+/* --- Pretty form controls (global within community) --- */
+.composer__form input,
+.composer__form select,
+.composer__form textarea,
+.comment-form input,
+.controls-inline select,
+.controls-inline input {
+  background: linear-gradient(180deg,#172231,#121b26);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border .15s, box-shadow .15s, background .15s;
+}
+.composer__form input::placeholder,
+.composer__form textarea::placeholder,
+.comment-form input::placeholder {
+  color: rgba(255,255,255,.35);
+}
+.composer__form input:hover,
+.composer__form select:hover,
+.composer__form textarea:hover,
+.comment-form input:hover,
+.controls-inline select:hover { border-color: rgba(102,192,244,.25); }
+.composer__form input:focus,
+.composer__form select:focus,
+.composer__form textarea:focus,
+.comment-form input:focus,
+.controls-inline select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(102,192,244,.22);
+}
+
+/* --- Toolbar: composer + filters inline --- */
+.controls-inline{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:10px;
+}
+.filters{
+  display:flex; gap:6px; align-items:center;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 6px;
+}
+.filter-btn{
+  background:transparent; color:var(--muted); border:0;
+  padding:6px 10px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;
+  transition: all .15s ease;
+}
+.filter-btn:hover{ color:#fff; background:rgba(255,255,255,.08); }
+.filter-btn.active{
+  color:#fff; background:rgba(102,192,244,.15); outline:1px solid rgba(102,192,244,.3);
+}
+
+/* Hide composer when filters panel is open (toggled via body class) */
+body.filters-open .composer{ display:none !important; }
+
+/* --- Collapsible composer (Create Thread) --- */
+.composer{
+  margin-top:10px;
+  background: linear-gradient(180deg,#122233,#0f1923);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+.composer__form{
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height .25s ease, opacity .2s ease, transform .2s ease;
+}
+.composer.is-open .composer__form{
+  max-height: 780px; /* big enough */
+  opacity: 1;
+  transform: translateY(0);
+}
+.composer__row{
+  display:grid;
+  grid-template-columns: 200px 1fr 220px; /* category | game title | source */
+  gap:10px;
+}
+@media (max-width: 900px){
+  .composer__row{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px){
+  .composer__row{ grid-template-columns: 1fr; }
+}
+.composer__actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+/* Small button variant */
+.btn.sm{ padding:6px 10px; font-size:12px; border-radius:8px; }
+
+/* --- Threads list tweaks --- */
+.thread-card{
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.thread-card:hover{
+  transform: translateY(-2px);
+  border-color: rgba(102,192,244,.25);
+  box-shadow: var(--shadow);
+}
+.thread-title{ letter-spacing:.2px; }
+
+/* --- Votes: perfect centering (list + detail) --- */
+.thread-votes,
+.thread-detail__votes{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  width:56px; min-width:56px;
+}
+.vote-btn{
+  display:grid; place-items:center;
+  width:36px; height:36px; padding:0; line-height:1; font-size:14px; font-weight:800;
+  border-radius:10px; border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg,#152234,#0f1826);
+  color: var(--text);
+  cursor:pointer;
+  transition: transform .08s ease, border-color .15s ease, box-shadow .15s ease;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.vote-btn:hover{ transform: translateY(-1px); border-color: rgba(102,192,244,.35); box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+.vote-btn--active{ background: linear-gradient(180deg,rgba(102,192,244,.25),rgba(25,153,255,.18)); border-color: rgba(102,192,244,.5); }
+.vote-btn--up.vote-btn--active{ color:#9be2ff; }
+.vote-btn--down.vote-btn--active{ color:#ffd0d0; }
+.vote-score{ font-weight:900; font-variant-numeric: tabular-nums; letter-spacing:.3px; }
+
+/* --- Thread detail panel --- */
+.thread-detail{
+  display:flex; gap:16px;
+  background: linear-gradient(180deg,#132233,#112031);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:16px;
+  box-shadow: var(--shadow);
+}
+.thread-detail__main{ display:flex; flex-direction:column; gap:10px; }
+.thread-meta{
+  display:flex; flex-wrap:wrap; gap:8px;
+  color: var(--muted); font-size:12px;
+}
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid rgba(255,255,255,.12);
+  padding:2px 8px; border-radius:999px; font-size:12px;
+  background: rgba(255,255,255,.04);
+}
+.badge--cat{ border-color: rgba(102,192,244,.25); }
+.badge--author{ color:#fff; }
+.badge--time{ color: var(--muted); }
+
+.thread-body{
+  color: var(--text);
+  line-height: 1.7;
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;
+  padding:10px 12px;
+}
+
+/* --- Rep section (hidden when no game) --- */
+.rep-line{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:8px 10px;
+}
+.rep-pill{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg,#122233,#0f1824);
+}
+.rep-pill strong{ font-weight:900; }
+.rep-actions{ display:flex; gap:8px; }
+.rep-btn{
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent; color:var(--text);
+  padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:800;
+}
+.rep-btn--up:hover{ border-color:rgba(61,184,135,.5); color:var(--success); }
+.rep-btn--down:hover{ border-color:rgba(217,83,79,.5); color:var(--danger); }
+
+/* Force hidden elements to fully collapse */
+[hidden]{ display:none !important; }
+
+/* --- Comments area polish --- */
+.comments-area{
+  margin-top:10px;
+  background: linear-gradient(180deg,#101a29,#0e1825);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:12px;
+}
+.comments-area h2{ margin:0 0 10px; }
+.comments{
+  display:flex; flex-direction:column; gap:10px;
+}
+.comment{
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:8px 10px;
+}
+.comment__head{
+  display:flex; gap:8px; font-size:12px; color:var(--muted);
+}
+.comment__author{ color:#fff; font-weight:800; }
+.comment__body{ margin-top:6px; }
+
+.comment-form{
+  display:flex; gap:8px; margin-top:10px;
+  border-top:1px solid rgba(255,255,255,.08); padding-top:10px;
+}
+.comment-form input{ flex:1; }
+
+/* --- Sidebar buttons (already fixed), remove bullets --- */
+.sidebar__list{ list-style:none; margin:0; padding:0; }
+.sidebar__list li{ list-style:none; }
+
+/* --- Extra: ghost subtle dividers for long content --- */
+.hr-ghost{
+  height:1px; background:rgba(255,255,255,.06);
+  border:none; margin:10px 0;
+}

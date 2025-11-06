@@ -41,10 +41,40 @@
       <input id="threadSearch" type="search" placeholder="Search threads…">
     </div>
     <div class="avatar" id="accountBtn" title="Your account">A</div>
+    <!--
+    <div class="avatar" id="accountBtn" title="Your account">
+      <img src="/assets/user.png" alt="User" class="avatar__img">
+    </div>
+    -->
+    <!-- dropdown account box -->
+    <div id="accountBox" class="account-box" hidden>
+      <div class="account-tabs">
+        <button id="tabLogin" class="tab active">Login</button>
+        <button id="tabRegister" class="tab">Register</button>
+      </div>
+
+      <!-- login -->
+      <form id="loginForm" class="account-form">
+        <input type="text" placeholder="Username" required>
+        <input type="password" placeholder="Password" required>
+        <button class="btn btn--primary" type="submit">Sign In</button>
+      </form>
+
+      <!-- register -->
+      <form id="registerForm" class="account-form" hidden>
+        <input type="text" placeholder="Username" required>
+        <input type="email" placeholder="Email" required>
+        <input type="password" placeholder="Password" required>
+        <input type="password" placeholder="Confirm Password" required>
+        <button class="btn btn--primary" type="submit">Create Account</button>
+      </form>
+    </div>
   </div>
 </header>
 
+<!-- layout -->
 <div class="layout">
+
   <aside class="sidebar">
     <div class="sidebar__section">
       <div class="sidebar__title">Categories</div>
@@ -68,52 +98,67 @@
     </div>
   </aside>
 
-  <main class="content">
+    <main class="content">
     <section class="hero">
-      <div class="hero__bg"></div>
-      <div class="hero__content">
+        <div class="hero__bg"></div>
+        <div class="hero__content">
         <h1>Community Board</h1>
         <p>Discuss games, mods, fixes. Vote on threads and +rep/−rep games.</p>
 
-        <div class="composer">
-          <button id="composerToggle" class="btn btn--primary">Create Thread</button>
-          <form id="threadForm" class="composer__form" hidden>
+        <!-- Collapsible composer -->
+        <div class="composer" id="composer">
+            <button id="composerToggle" class="btn btn--primary" type="button" aria-expanded="false">Create Thread</button>
+            Create Thread
+            </button>
+
+            <form id="threadForm" class="composer__form" autocomplete="off">
             <input type="text" id="threadTitle" placeholder="Thread title" required>
+
             <div class="composer__row">
-              <select id="threadCategory" required>
+                <select id="threadCategory" required aria-label="Category">
                 <option value="games">Games</option>
                 <option value="tech">Tech</option>
                 <option value="mods">Mods</option>
                 <option value="offtopic">Off-topic</option>
-              </select>
-              <input type="text" id="gameTitle" placeholder="Game title (optional)">
-              <input type="text" id="gameSource" placeholder="Source (e.g., OnlineFix)">
+                </select>
+
+                <input type="text" id="gameTitle" placeholder="Game title (optional)" aria-label="Game title (optional)">
+                <input type="text" id="gameSource" placeholder="Source (e.g., OnlineFix)" aria-label="Source (optional)">
             </div>
+
             <textarea id="threadBody" rows="5" placeholder="Write your post..." required></textarea>
+
             <div class="composer__actions">
-              <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
-              <button type="submit" class="btn btn--primary">Publish</button>
+                <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
+                <button type="submit" class="btn btn--primary">Publish</button>
             </div>
-          </form>
+            </form>
         </div>
 
+        <!-- Toolbar: filters + sort -->
         <div class="controls-inline">
-          <select id="sortSelect" class="select">
+            <div class="filters">
+            <button id="filterToggle" class="filter-btn" type="button">Filters</button>
+            <!-- add filter chips/inputs here if needed -->
+            </div>
+
+            <select id="sortSelect" class="select" aria-label="Sort threads">
             <option value="new">Newest</option>
             <option value="top">Top (votes)</option>
             <option value="hot">Hot (balanced)</option>
-          </select>
+            </select>
         </div>
-      </div>
+        </div>
     </section>
 
     <section class="community">
-      <div class="thread-list" id="threadList"></div>
-      <div id="emptyState" class="empty-state" hidden>No threads yet. Be the first to post.</div>
+        <div class="thread-list" id="threadList"></div>
+        <div id="emptyState" class="empty-state" hidden>No threads yet. Be the first to post.</div>
     </section>
-  </main>
+    </main>
 </div>
 
+<script src="/js/auth.js"></script>
 <script src="/js/community.js"></script>
 </body>
 </html>
