@@ -10,9 +10,9 @@ const { scrapeDetailAnker, scrapeDetail3rb } = require('./scrape');
 const { scrapeDetailRepackGames } = require('./scrapers/repackgames');
 
 // Listing/search helpers (root or scrapers fallback)
-const { scrapeRepackSearch } = req2('./repackgames', './scrapers/repackgames');
+const { streamRepackGames } = req2('./repackgames', './scrapers/repackgames');
 const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = req2('./onlinefix', './scrapers/onlinefix');
-const { scrapeSteamUndergroundSearch } = req2('./steamunderground', './scrapers/steamunderground');
+const { streamSteamUnderground } = req2('./steamunderground', './scrapers/steamunderground');
 
 // Minimal fetch
 function fetchHtml(url) {
@@ -106,21 +106,6 @@ function registerSearchStream(app) {
       });
     }
 
-    // ---- RepackGames (per-item) ----
-    async function streamRepack() {
-      const url = `https://repack-games.com/?s=${encodeURIComponent(q)}`;
-      const list = await scrapeRepackSearch(url);
-      await forEachWithLimit(list, 3, async (g) => {
-        try {
-          const d = await scrapeDetailRepackGames(g.href);
-          const poster = d.poster || g.img || '';
-          send('item', { source: 'RepackGames', item: { ...g, ...d, poster, src: 'RepackGames' } });
-        } catch {
-          send('item', { source: 'RepackGames', item: { ...g, src: 'RepackGames' } });
-        }
-      });
-    }
-
     // ---- Online-Fix (per-item) ----
     async function streamOnlineFix() {
       const list = await scrapeOnlineFixSearch(q);
@@ -135,10 +120,19 @@ function registerSearchStream(app) {
       });
     }
 
-    async function streamSteamUnderground() {
-      const arr = await scrapeSteamUndergroundSearch(q);
-      send('items', { source: 'SteamUnderground', items: arr });
+    async function streamSteamUndergroundRunner() {
+      await streamSteamUnderground(q, async (item) => {
+        send('item', { source: 'SteamUnderground', item });
+      });
     }
+
+    
+    async function streamRepack() {
+      await streamRepackGames(q, async (item) => {
+        send('item', { source: 'RepackGames', item });
+      });
+    }
+
 
     const ping = setInterval(() => send('ping', { t: Date.now() }), 15000);
 
@@ -147,7 +141,7 @@ function registerSearchStream(app) {
       streamGame3rb(),
       streamRepack(),
       streamOnlineFix(),
-      streamSteamUnderground()
+      streamSteamUndergroundRunner()
     ]);
 
     clearInterval(ping);

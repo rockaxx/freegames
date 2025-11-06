@@ -265,44 +265,51 @@ async function scrapeDetailSteamUnderground(url) {
     steam
   };
 }
-
-// ---------- SEARCH ----------
 async function scrapeSteamUndergroundSearch(q) {
-  const url = `https://steamunderground.net/?s=${encodeURIComponent(q)}`;
-  const html = await fetchWithCFBypass(url);
-  if (!html) return [];
-
-  const $ = cheerio.load(html);
   const items = [];
 
-  $('li.row-type').each((_, el) => {
-    const $el = $(el);
-    const href = $el.find('.post-c-wrap a').attr('href');
+  for (let page = 1; page < 999; page++) {
+    const url = `https://steamunderground.net/page/${page}/?s=${encodeURIComponent(q)}`;
+    const html = await fetchWithCFBypass(url);
+    if (!html) break;
 
-    // Thumb for the card (not screenshots)
-    const $img = $el.find('.thumb img').first();
-    const img = bestImgUrl($img);
+    const $ = cheerio.load(html);
+    const pageItems = [];
 
-    const title = clean($el.find('.post-c-wrap a').text());
+    $('li.row-type').each((_, el) => {
+      const $el = $(el);
+      const href = $el.find('.post-c-wrap a').attr('href');
 
-    // Uploaded date if present on the card
-    const uploaded =
-      clean($el.find('.post-date').first().text()) ||
-      clean($el.find('time.entry-date').first().text()) ||
-      '';
-    const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
+      const $img = $el.find('.thumb img').first();
+      const img = bestImgUrl($img);
+      const title = clean($el.find('.post-c-wrap a').text());
+      const uploaded =
+        clean($el.find('.post-date').first().text()) ||
+        clean($el.find('time.entry-date').first().text()) ||
+        '';
+      const uploadedText = uploaded ? `Uploaded: ${uploaded}` : '';
 
-    let tags = [];
-    $el.find('.post-category a').each((_, a) => {
-      const tag = clean($(a).text());
-      if (tag) tags.push(tag);
+      let tags = [];
+      $el.find('.post-category a').each((_, a) => {
+        const tag = clean($(a).text());
+        if (tag) tags.push(tag);
+      });
+      tags = tags.filter(t => t.toLowerCase() !== 'uncategorized');
+
+      if (href && title) {
+        pageItems.push({
+          src: 'SteamUnderground',
+          title, href, img, tags, uploaded, uploadedText
+        });
+      }
     });
-    tags = tags.filter(t => t.toLowerCase() !== 'uncategorized');
 
-    if (href && title) items.push({ src: 'SteamUnderground', title, href, img, tags, uploaded, uploadedText });
-  });
+    if (pageItems.length === 0) break; // tu končíme paging
 
-  // Enrich with version/size/releaseGroup/steam/uploaded fallback
+    items.push(...pageItems);
+  }
+
+  // teraz enrichujeme až po paginatione
   await mapWithLimit(items, 3, async (it) => {
     try {
       const dhtml = await fetchWithCFBypass(it.href);
@@ -312,35 +319,67 @@ async function scrapeSteamUndergroundSearch(q) {
       const rel = extractReleaseGroup(d$) || extractCrack(d$, dhtml);
       const sys = extractSysreq(d$);
       const storage = pickStorage(sys, dhtml);
+
       const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(dhtml)?.[1] || '';
       const finalSize = sizeRx || storage || '';
       if (finalSize) it.size = finalSize;
-      if (v) { it.version = v; it.gameVersion = v; }
-      if (rel) {
-        it.releaseGroup = rel;
-        it.crack = rel;
-        it.crackedBy = rel;
-      }
+      if (v) it.version = it.gameVersion = v;
+      if (rel) it.releaseGroup = it.crackedBy = it.crack = rel;
 
       const steam = extractSteamLink(d$, dhtml);
       if (steam) it.steam = steam;
-
-      if (!it.uploaded) {
-        const up =
-          clean(d$('.post-date').first().text()) ||
-          clean(d$('time.entry-date').first().text()) ||
-          clean(d$('.post-meta time').first().text()) ||
-          '';
-        if (up) {
-          it.uploaded = up;
-          it.uploadedText = `Uploaded: ${up}`;
-        }
-      }
     } catch (_) {}
     return it;
   });
 
   return items;
 }
+async function streamSteamUnderground(q, onItem) {
+  for (let page = 1; page < 999; page++) {
+    const url = `https://steamunderground.net/page/${page}/?s=${encodeURIComponent(q)}`;
+    const html = await fetchWithCFBypass(url);
+    if (!html) break;
 
-module.exports = { scrapeSteamUndergroundSearch, scrapeDetailSteamUnderground };
+    const $ = cheerio.load(html);
+    const batch = [];
+
+    $('li.row-type').each((_, el) => {
+      const $el = $(el);
+      const href = $el.find('.post-c-wrap a').attr('href');
+      const img = bestImgUrl($el.find('.thumb img').first());
+      const title = clean($el.find('.post-c-wrap a').text());
+      if (href && title) batch.push({ title, href, img });
+    });
+
+    if (batch.length === 0) break;
+
+    // stream per item with detail immediately
+    await mapWithLimit(batch, 3, async (g) => {
+      try {
+        const dhtml = await fetchWithCFBypass(g.href);
+        const d$ = cheerio.load(dhtml);
+        const v = extractGameVersion(d$, dhtml);
+        const rel = extractReleaseGroup(d$) || extractCrack(d$, dhtml);
+        const sys = extractSysreq(d$);
+        const storage = pickStorage(sys, dhtml);
+        const sizeRx = /Size:\s*([0-9.]+\s*(?:GB|MB))/i.exec(dhtml)?.[1] || '';
+        const finalSize = sizeRx || storage || '';
+
+        const out = {
+          src: 'SteamUnderground',
+          title: g.title,
+          href: g.href,
+          img: g.img,
+          version: v || '',
+          crack: rel || '',
+          size: finalSize || '',
+        };
+
+        await onItem(out);
+      } catch (e) {}
+    });
+  }
+}
+
+
+module.exports = { scrapeSteamUndergroundSearch, scrapeDetailSteamUnderground, streamSteamUnderground };

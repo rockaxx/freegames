@@ -2,6 +2,28 @@
 const { fetchWithCFBypass } = require('./cloudflare');
 const cheerio = require('cheerio');
 
+/** Simple concurrency limiter for arrays. */
+async function mapWithLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      try {
+        out[idx] = await fn(items[idx], idx);
+      } catch (e) {
+        // swallow to keep stream going
+        out[idx] = undefined;
+      }
+    }
+  }
+
+  const n = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array(n).fill(0).map(worker));
+  return out;
+}
+
 /** Keep only one link per host and no exact-URL duplicates. */
 function dedupeLinks(raw) {
   const seenUrl = new Set();
@@ -33,7 +55,7 @@ function dedupeLinks(raw) {
 // ---------- DETAIL ----------
 async function scrapeDetailRepackGames(url) {
   const html = await fetchWithCFBypass(url);
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(html || '');
 
   const title =
     $('h1.article-title, h1.entry-title').first().text().trim();
@@ -66,9 +88,6 @@ async function scrapeDetailRepackGames(url) {
   $('a.enjoy-css').each((_, el) => {
     const link = $(el).attr('href');
     if (!link || !/^https?:\/\//i.test(link)) return;
-
-    // Some pages put a descriptive <span> before the button. We ignore it
-    // because we normalize labels to hostname to avoid duplicates.
     rawLinks.push({ link });
   });
 
@@ -95,7 +114,7 @@ async function scrapeDetailRepackGames(url) {
 // ----------- HOMEPAGE / LIST -----------
 async function scrapeRepackList(url) {
   const html = await fetchWithCFBypass(url, { headless: true });
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(html || '');
   const items = [];
 
   $('li.post').each((_, el) => {
@@ -130,10 +149,10 @@ async function scrapeRepackList(url) {
   return items;
 }
 
-// ----------- SEARCH -----------
+// ----------- SEARCH (single page helper) -----------
 async function scrapeRepackSearch(url) {
   const html = await fetchWithCFBypass(url, { headless: true });
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(html || '');
   const items = [];
 
   $('li').each((_, el) => {
@@ -163,12 +182,34 @@ async function scrapeRepackSearch(url) {
     }
   });
 
-  console.log(`[RepackGames SEARCH] Results: ${items.length}`);
+  console.log(`[RepackGames SEARCH] Results: ${items.length} (${url})`);
   return items;
+}
+
+// ----------- STREAM (paged + per-item) -----------
+async function streamRepackGames(q, onItem) {
+  for (let page = 1; page < 999; page++) {
+    const url = `https://repack-games.com/page/${page}/?s=${encodeURIComponent(q)}`;
+    const list = await scrapeRepackSearch(url);
+    if (!list || list.length === 0) break;
+
+    await mapWithLimit(list, 3, async (g) => {
+      try {
+        const d = await scrapeDetailRepackGames(g.href);
+        const poster = d.poster || g.img || '';
+        const out = { ...g, ...d, poster, src: 'RepackGames' };
+        await onItem(out);
+      } catch (e) {
+        console.warn('[RepackGames] detail fail:', g.href);
+        await onItem({ ...g, src: 'RepackGames' });
+      }
+    });
+  }
 }
 
 module.exports = {
   scrapeDetailRepackGames,
   scrapeRepackList,
   scrapeRepackSearch,
+  streamRepackGames
 };
