@@ -123,16 +123,21 @@ async function listThreads({ category='all', q='', sort='new' }) {
 }
 
 async function voteThread({ userId, threadId, delta }) {
-  // Upsert behavior
-  const existing = await get(`SELECT value FROM thread_votes WHERE thread_id=? AND user_id=?`, [threadId, userId]);
-  if (!existing) {
-    await run(`INSERT INTO thread_votes(thread_id,user_id,value) VALUES(?,?,?)`, [threadId, userId, delta]);
-  } else if (existing.value === delta) {
-    await run(`DELETE FROM thread_votes WHERE thread_id=? AND user_id=?`, [threadId, userId]); // toggle off
-  } else {
-    await run(`UPDATE thread_votes SET value=? WHERE thread_id=? AND user_id=?`, [delta, threadId, userId]);
+  // write-once semantics
+  const existing = await get(
+    `SELECT value FROM thread_votes WHERE thread_id=? AND user_id=?`,
+    [threadId, userId]
+  );
+  if (existing) {
+    return { ok: false, locked: true, value: existing.value };
   }
+  await run(
+    `INSERT INTO thread_votes(thread_id,user_id,value) VALUES(?,?,?)`,
+    [threadId, userId, delta]
+  );
+  return { ok: true };
 }
+
 
 async function createComment({ userId, threadId, body }) {
   await run(`INSERT INTO comments(thread_id,user_id,body) VALUES(?,?,?)`, [threadId, userId, body]);
@@ -151,20 +156,57 @@ async function listComments(threadId) {
 }
 
 async function repGame({ userId, gameKey, gameTitle, delta }) {
-  const ex = await get(`SELECT value FROM game_rep WHERE game_key=? AND user_id=?`, [gameKey, userId]);
-  if (!ex) {
-    await run(`INSERT INTO game_rep(game_key, game_title, user_id, value) VALUES(?,?,?,?)`, [gameKey, gameTitle || null, userId, delta]);
-  } else if (ex.value === delta) {
-    await run(`DELETE FROM game_rep WHERE game_key=? AND user_id=?`, [gameKey, userId]); // toggle off
-  } else {
-    await run(`UPDATE game_rep SET value=? WHERE game_key=? AND user_id=?`, [delta, gameKey, userId]);
+  // write-once semantics
+  const ex = await get(
+    `SELECT value FROM game_rep WHERE game_key=? AND user_id=?`,
+    [gameKey, userId]
+  );
+  if (ex) {
+    return { ok: false, locked: true, value: ex.value };
   }
+  await run(
+    `INSERT INTO game_rep(game_key, game_title, user_id, value) VALUES(?,?,?,?)`,
+    [gameKey, gameTitle || null, userId, delta]
+  );
+  return { ok: true };
 }
+
 
 async function getGameRep(gameKey) {
   const r = await get(`SELECT SUM(value) AS score FROM game_rep WHERE game_key=?`, [gameKey]);
   return r?.score || 0;
 }
+
+async function getThreadById(threadId, userId=null) {
+  const row = await all(`
+    SELECT
+      t.*,
+      COALESCE(tv.score,0)    AS score,
+      COALESCE(cm.cnt,0)      AS comments_count,
+      COALESCE(gr.score,0)    AS game_rep_score,
+      mv.value                AS myVote,
+      mr.value                AS myRep
+    FROM threads t
+    LEFT JOIN (SELECT thread_id, SUM(value) AS score FROM thread_votes GROUP BY thread_id) tv
+      ON tv.thread_id = t.id
+    LEFT JOIN (SELECT thread_id, COUNT(*) AS cnt FROM comments GROUP BY thread_id) cm
+      ON cm.thread_id = t.id
+    LEFT JOIN (SELECT game_key, SUM(value) AS score FROM game_rep GROUP BY game_key) gr
+      ON gr.game_key = t.game_key
+    LEFT JOIN thread_votes mv
+      ON mv.thread_id = t.id AND mv.user_id = ?
+    LEFT JOIN game_rep mr
+      ON mr.game_key = t.game_key AND mr.user_id = ?
+    WHERE t.id = ?
+    LIMIT 1
+  `, [userId||-1, userId||-1, threadId]);
+
+  const result = row && row[0];
+  if (!result) return null;
+  result.author = result.user_id ? `User#${result.user_id}` : 'Anonymous';
+  return result;
+}
+
 
 module.exports = {
   initCommunityTables,
@@ -174,5 +216,6 @@ module.exports = {
   createComment,
   listComments,
   repGame,
-  getGameRep
+  getGameRep,
+  getThreadById
 };

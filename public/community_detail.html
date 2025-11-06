@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>K-D-A Launcher — Thread</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/community.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <div class="brand" onclick="window.location='/'" style="cursor:pointer;">
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+        <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+      </svg>
+      <span class="brand__text">K-D-A Launcher</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav__link" onclick="window.location='/'">Underground</button>
+      <button class="nav__link" onclick="window.location='/library'">Library</button>
+      <button class="nav__link active" onclick="window.location='/community'">Community</button>
+      <button class="nav__link trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
+    </nav>
+  </div>
+  <div class="topbar__right">
+    <div class="avatar" id="accountBtn" title="Your account">A</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__title">Back</div>
+      <button class="sidebar__item" onclick="history.back()">← Back to list</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <article id="thread" class="thread-detail">
+      <div class="thread-detail__votes">
+        <button id="voteUp" class="vote-btn">▲</button>
+        <span id="voteScore" class="vote-score">0</span>
+        <button id="voteDown" class="vote-btn">▼</button>
+      </div>
+
+      <div class="thread-detail__main">
+        <h1 id="threadTitle"></h1>
+        <div class="thread-meta" id="threadMeta"></div>
+        <div class="thread-body" id="threadBody"></div>
+
+        <div id="repWrap" class="rep-line" hidden>
+          <div class="rep-pill" id="repPill"><span id="repGameTitle"></span><strong id="repScore"></strong></div>
+          <div class="rep-actions">
+            <button id="repUp" class="rep-btn rep-btn--up">+rep</button>
+            <button id="repDown" class="rep-btn rep-btn--down">-rep</button>
+          </div>
+        </div>
+
+        <section class="comments-area">
+          <h2>Comments</h2>
+          <div id="commentsList" class="comments"></div>
+          <form id="commentForm" class="comment-form">
+            <input id="commentInput" type="text" placeholder="Write a comment…">
+            <button class="btn btn--primary" type="submit">Send</button>
+          </form>
+        </section>
+      </div>
+    </article>
+  </main>
+</div>
+
+<script src="/js/community_detail.js"></script>
+</body>
+</html>

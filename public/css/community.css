@@ -113,3 +113,9 @@
   flex:1; background:linear-gradient(180deg,#172231,#121b26); color:var(--text);
   border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px 10px;
 }
+.vote-btn[disabled],
+.rep-btn[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

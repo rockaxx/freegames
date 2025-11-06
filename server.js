@@ -39,6 +39,10 @@ app.use((req, _res, next) => {
   next();
 });
 
+app.get('/community/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'community_detail.html'));
+});
+
 const cache = new Map();
 const TTL_MS = 5 * 60 * 1000;
 
