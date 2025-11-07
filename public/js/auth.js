@@ -1,131 +1,384 @@
-(function(){
-  const accBtn = document.getElementById('accountBtn');
-  const accBox = document.getElementById('accountBox');
-  const tabLogin = document.getElementById('tabLogin');
-  const tabRegister = document.getElementById('tabRegister');
-  const formLogin = document.getElementById('loginForm');
-  const formRegister = document.getElementById('registerForm');
+// auth.js
+// Injects avatar + dropdown and a full-screen Settings modal.
+// Requirements:
+// - <div id="auth-root"></div> somewhere in the topbar (or the script will fall back to .topbar__right / body)
+// - /assets/user.png should exist for logged-out avatar
+// - Backend endpoints (expected):
+//   GET    /api/me                -> { ok: true, user: { username, email, ... } }
+//   POST   /api/login             -> { ok: true, user: {...} }
+//   POST   /api/register          -> { ok: true, user: {...} }
+//   POST   /api/logout            -> { ok: true }
+//   PATCH  /api/user              -> { ok: true, user: {...} }   // updates username/email/password
+//   (fallback) POST /api/user/update with same payload if PATCH 404.
+//
+// Notes:
+// - Code is defensive: if PATCH /api/user fails with 404, it tries POST /api/user/update.
+// - Password change is optional. If you fill any password fields, current password is required and new passwords must match.
+// - Pressing ESC closes dropdown and modal. Clicking outside closes as well.
 
-  function showLogin() {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    formLogin.hidden = false;
-    formRegister.hidden = true;
+(function () {
+  // ---------- Mount points ----------
+  const mountHost =
+    document.getElementById('auth-root') ||
+    document.querySelector('.topbar__right') ||
+    document.body;
+
+  // inject avatar + dropdown containers if not present
+  if (!mountHost.querySelector('#accountBtn')) {
+    mountHost.insertAdjacentHTML(
+      'beforeend',
+      `
+        <div class="avatar" id="accountBtn" title="Your account"></div>
+        <div id="accountBox" class="account-box" hidden></div>
+      `
+    );
   }
-  function showRegister() {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    formRegister.hidden = false;
-    formLogin.hidden = true;
-  }
 
-  // >>> Block outside-click handlers from firing when interacting inside the box
-  ['mousedown','click','touchstart'].forEach(ev => {
-    accBox.addEventListener(ev, e => e.stopPropagation());
-  });
+  const accBtn = mountHost.querySelector('#accountBtn');
+  const accBox = mountHost.querySelector('#accountBox');
 
-  accBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    accBox.hidden = !accBox.hidden;
-    if (!accBox.hidden) {
-      showLogin();
-      // >>> Focus first input for typing to work immediately
-      setTimeout(() => {
-        const first = accBox.querySelector('input');
-        if (first) first.focus();
-      }, 0);
-    }
-  });
+  // Add Settings overlay root (once)
+  if (!document.getElementById('authSettingsOverlay')) {
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      `
+      <div id="authSettingsOverlay" class="auth-overlay" hidden>
+        <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authSettingsTitle">
+          <div class="auth-modal__header">
+            <h3 id="authSettingsTitle">Account Settings</h3>
+            <button class="auth-close" id="authSettingsClose" aria-label="Close">&times;</button>
+          </div>
+          <div class="auth-modal__body">
+            <form id="settingsForm" class="auth-form">
+              <div class="auth-field">
+                <label for="setUsername">Username</label>
+                <input id="setUsername" type="text" autocomplete="username" required>
+              </div>
 
-  tabLogin.addEventListener('click', () => {
-    showLogin();
-    setTimeout(() => formLogin.querySelector('input')?.focus(), 0);
-  });
+              <div class="auth-field">
+                <label for="setEmail">Email</label>
+                <input id="setEmail" type="email" autocomplete="email" required>
+              </div>
 
-  tabRegister.addEventListener('click', () => {
-    showRegister();
-    setTimeout(() => formRegister.querySelector('input')?.focus(), 0);
-  });
-
-  // Close when clicking outside
-  document.addEventListener('click', e => {
-    if (!accBox.hidden && !accBox.contains(e.target) && e.target !== accBtn) {
-      accBox.hidden = true;
-    }
-  });
-
-  function renderLogged(user){
-    accBox.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <div style="
-          width:42px;height:42px;border-radius:50%;
-          display:grid;place-items:center;
-          background:linear-gradient(135deg,#263a50,#172738);
-          border:1px solid rgba(255,255,255,.08);
-          font-weight:800;font-size:17px;cursor:default;">
-          ${(user.username?.[0] || 'U').toUpperCase()}
-        </div>
-        <div style="display:flex;flex-direction:column;">
-          <div style="font-weight:700;font-size:15px;">${user.username || ''}</div>
-          <div style="font-size:13px;color:var(--muted);">${user.email || ''}</div>
+              <fieldset class="auth-fieldset">
+                <legend>Change Password (optional)</legend>
+                <div class="auth-field">
+                  <label for="currPass">Current password</label>
+                  <input id="currPass" type="password" autocomplete="current-password" placeholder="Required if changing password">
+                </div>
+                <div class="auth-field">
+                  <label for="newPass">New password</label>
+                  <input id="newPass" type="password" autocomplete="new-password">
+                </div>
+                <div class="auth-field">
+                  <label for="newPass2">Confirm new password</label>
+                  <input id="newPass2" type="password" autocomplete="new-password">
+                </div>
+              </fieldset>
+            </form>
+          </div>
+          <div class="auth-modal__footer">
+            <button class="btn btn--ghost" id="authSettingsCancel">Cancel</button>
+            <button class="btn btn--primary" id="authSettingsSave">Save</button>
+          </div>
         </div>
       </div>
-      <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout</button>
-    `;
-    accBox.querySelector('#logoutBtn').onclick = async () => {
-      await fetch('/api/logout', { method:'POST' });
-      location.reload();
-    };
-    document.getElementById('accountBtn').textContent =
-      (user.username || 'U').charAt(0).toUpperCase();
+      `
+    );
   }
 
-  // Register
-  formRegister.addEventListener('submit', async e => {
-    e.preventDefault();
-    const [usernameEl, emailEl, passEl, pass2El] = formRegister.querySelectorAll('input');
-    if (passEl.value !== pass2El.value) return alert('Passwords mismatch');
+  const overlay = document.getElementById('authSettingsOverlay');
+  const overlayClose = document.getElementById('authSettingsClose');
+  const overlayCancel = document.getElementById('authSettingsCancel');
+  const overlaySave = document.getElementById('authSettingsSave');
+  const formSettings = document.getElementById('settingsForm');
+  const inputUser = document.getElementById('setUsername');
+  const inputEmail = document.getElementById('setEmail');
+  const inputCurr = document.getElementById('currPass');
+  const inputNew = document.getElementById('newPass');
+  const inputNew2 = document.getElementById('newPass2');
 
-    const r = await fetch('/api/register', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        username: usernameEl.value.trim(),
-        email: emailEl.value.trim(),
-        password: passEl.value
-      })
+  // ---------- State ----------
+  let currentUser = null;
+
+  // ---------- Renderers ----------
+  function renderLoggedOut() {
+    accBtn.innerHTML = `<img src="/assets/user.png" alt="User">`;
+    accBox.innerHTML = `
+      <div class="account-tabs">
+        <button id="tabLogin" class="tab active">Login</button>
+        <button id="tabRegister" class="tab">Register</button>
+      </div>
+
+      <form id="loginForm" class="account-form">
+        <input name="username" type="text" placeholder="Username" required autocomplete="username">
+        <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
+        <button class="btn btn--primary" type="submit">Sign In</button>
+      </form>
+
+      <form id="registerForm" class="account-form" hidden>
+        <input name="username" type="text" placeholder="Username" required autocomplete="username">
+        <input name="email" type="email" placeholder="Email" required autocomplete="email">
+        <input name="password" type="password" placeholder="Password" required autocomplete="new-password">
+        <input name="password2" type="password" placeholder="Confirm Password" required autocomplete="new-password">
+        <button class="btn btn--primary" type="submit">Create Account</button>
+      </form>
+    `;
+    bindLoggedOutEvents();
+  }
+
+  function renderLogged(user) {
+    currentUser = user || currentUser;
+    const letter = (currentUser?.username || 'U').charAt(0).toUpperCase();
+    accBtn.textContent = letter;
+
+    accBox.innerHTML = `
+      <div class="account-identity">
+        <div class="avatar avatar--sm">${letter}</div>
+        <div class="account-identity__meta">
+          <div class="acc-name">${escapeHtml(currentUser?.username || '')}</div>
+          <div class="acc-email">${escapeHtml(currentUser?.email || '')}</div>
+        </div>
+      </div>
+      <div class="account-actions">
+        <button id="settingsBtn" class="btn btn--ghost" style="width:100%;">Settings</button>
+        <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout</button>
+      </div>
+    `;
+    bindLoggedInEvents();
+  }
+
+  // ---------- Event binders ----------
+  function bindDropdownToggles() {
+    accBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      accBox.hidden = !accBox.hidden;
+      if (!accBox.hidden) {
+        // Focus first available element for accessibility
+        const firstFocusable = accBox.querySelector('button, input, [tabindex]:not([tabindex="-1"])');
+        if (firstFocusable) firstFocusable.focus();
+      }
     });
-    const data = await r.json();
-    if(!data.ok) return alert(data.error || 'Register failed');
-    renderLogged(data.user);
-    accBox.hidden = true;
+
+    document.addEventListener('click', (e) => {
+      if (!accBox.hidden && !accBox.contains(e.target) && e.target !== accBtn) {
+        accBox.hidden = true;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!overlay.hidden) closeOverlay();
+        if (!accBox.hidden) accBox.hidden = true;
+      }
+    });
+
+    // Prevent dropdown from closing when clicking inside
+    ['mousedown', 'click', 'touchstart'].forEach((ev) => {
+      accBox.addEventListener(ev, (e) => e.stopPropagation());
+    });
+  }
+
+  function bindLoggedOutEvents() {
+    const tabLogin = accBox.querySelector('#tabLogin');
+    const tabRegister = accBox.querySelector('#tabRegister');
+    const formLogin = accBox.querySelector('#loginForm');
+    const formRegister = accBox.querySelector('#registerForm');
+
+    tabLogin?.addEventListener('click', () => {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      formLogin.hidden = false;
+      formRegister.hidden = true;
+      formLogin.querySelector('input')?.focus();
+    });
+
+    tabRegister?.addEventListener('click', () => {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      formRegister.hidden = false;
+      formLogin.hidden = true;
+      formRegister.querySelector('input')?.focus();
+    });
+
+    formLogin?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(formLogin);
+      const body = {
+        username: String(fd.get('username') || '').trim(),
+        password: String(fd.get('password') || '')
+      };
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await safeJson(r);
+      if (!data?.ok) return alert(data?.error || 'Invalid login');
+      renderLogged(data.user);
+      accBox.hidden = true;
+    });
+
+    formRegister?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(formRegister);
+      const user = String(fd.get('username') || '').trim();
+      const email = String(fd.get('email') || '').trim();
+      const pass = String(fd.get('password') || '');
+      const pass2 = String(fd.get('password2') || '');
+      if (pass !== pass2) return alert('Passwords do not match');
+      const r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, email, password: pass })
+      });
+      const data = await safeJson(r);
+      if (!data?.ok) return alert(data?.error || 'Register failed');
+      renderLogged(data.user);
+      accBox.hidden = true;
+    });
+  }
+
+  function bindLoggedInEvents() {
+    const btnLogout = accBox.querySelector('#logoutBtn');
+    const btnSettings = accBox.querySelector('#settingsBtn');
+
+    btnLogout?.addEventListener('click', async () => {
+      try { await fetch('/api/logout', { method: 'POST' }); } catch (_) {}
+      location.reload();
+    });
+
+    btnSettings?.addEventListener('click', () => {
+      openOverlay(currentUser);
+      accBox.hidden = true;
+    });
+  }
+
+  // ---------- Overlay (Settings) ----------
+  function openOverlay(user) {
+    // pre-fill
+    inputUser.value = user?.username || '';
+    inputEmail.value = user?.email || '';
+    inputCurr.value = '';
+    inputNew.value = '';
+    inputNew2.value = '';
+
+    overlay.hidden = false;
+    document.body.classList.add('no-scroll');
+
+    // focus first field
+    setTimeout(() => inputUser.focus(), 0);
+  }
+
+  function closeOverlay() {
+    overlay.hidden = true;
+    document.body.classList.remove('no-scroll');
+  }
+
+  overlayClose?.addEventListener('click', closeOverlay);
+  overlayCancel?.addEventListener('click', closeOverlay);
+  overlay.addEventListener('mousedown', (e) => {
+    // click on backdrop closes
+    if (e.target === overlay) closeOverlay();
   });
 
-  // Login
-  formLogin.addEventListener('submit', async e => {
-    e.preventDefault();
-    const [usernameEl, passEl] = formLogin.querySelectorAll('input');
+  overlaySave?.addEventListener('click', async () => {
+    // Basic validation
+    const wantPwdChange = inputCurr.value || inputNew.value || inputNew2.value;
+    if (wantPwdChange) {
+      if (!inputCurr.value) return alert('Current password is required to change password.');
+      if (!inputNew.value) return alert('Enter a new password.');
+      if (inputNew.value !== inputNew2.value) return alert('New passwords do not match.');
+      if (inputNew.value.length < 6) return alert('New password must be at least 6 characters.');
+    }
 
-    const r = await fetch('/api/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        username: usernameEl.value.trim(),
-        password: passEl.value
-      })
-    });
-    const data = await r.json();
-    if(!data.ok) return alert(data.error || 'Invalid login');
-    renderLogged(data.user);
-    accBox.hidden = true;
+    const payload = {};
+    if (inputUser.value.trim() && inputUser.value.trim() !== currentUser?.username) {
+      payload.username = inputUser.value.trim();
+    }
+    if (inputEmail.value.trim() && inputEmail.value.trim() !== currentUser?.email) {
+      payload.email = inputEmail.value.trim();
+    }
+    if (wantPwdChange) {
+      payload.currentPassword = inputCurr.value;
+      payload.newPassword = inputNew.value;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      // Nothing to save
+      closeOverlay();
+      return;
+    }
+
+    // Busy state
+    setBusy(overlaySave, true);
+
+    let data = null;
+    try {
+      // Try PATCH first
+      let r = await fetch('/api/user', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (r.status === 404) {
+        // Fallback to POST /api/user/update
+        r = await fetch('/api/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+      data = await safeJson(r);
+    } catch (err) {
+      setBusy(overlaySave, false);
+      return alert('Network error.');
+    }
+
+    setBusy(overlaySave, false);
+
+    if (!data?.ok) return alert(data?.error || 'Failed to save settings');
+
+    currentUser = data.user;
+    renderLogged(currentUser);
+    closeOverlay();
   });
 
-  // Load current session on page load
-  (async function init(){
+  function setBusy(btn, isBusy) {
+    if (!btn) return;
+    btn.disabled = !!isBusy;
+    btn.dataset.busy = isBusy ? '1' : '';
+    btn.textContent = isBusy ? 'Saving…' : 'Save';
+  }
+
+  // ---------- Utilities ----------
+  async function safeJson(resp) {
+    try { return await resp.json(); } catch { return null; }
+  }
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ---------- Init ----------
+  bindDropdownToggles();
+
+  (async function init() {
     try {
       const r = await fetch('/api/me');
-      const data = await r.json();
-      if (data.ok && data.user) renderLogged(data.user);
-    } catch(_) {}
+      const data = await safeJson(r);
+      if (data?.ok && data.user) {
+        currentUser = data.user;
+        renderLogged(currentUser);
+      } else {
+        renderLoggedOut();
+      }
+    } catch {
+      renderLoggedOut();
+    }
   })();
 })();

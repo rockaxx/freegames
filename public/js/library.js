@@ -58,10 +58,31 @@ function fav_key(it) {
   const src = (it.src || '').toLowerCase();
   return href || `${title}|${src}`;
 }
-function fav_remove(it) {
-  const key = fav_key(it);
-  const list = fav_load().filter(x => fav_key(x) !== key);
-  fav_save(list);
+
+async function removeFavSmart(g, cardEl) {
+  // 1) server/LS
+  let me = null;
+  try { me = await (await fetch('/api/me')).json(); } catch { me = { ok:false }; }
+
+  const key = g.__key || fav_key(g);
+
+  if (me?.ok) {
+    await fetch('/api/library/' + encodeURIComponent(key), { method: 'DELETE' });
+  } else {
+    const list = fav_load().filter(x => fav_key(x) !== key);
+    fav_save(list);
+  }
+
+  // 2) DOM remove (no rerender, no scroll jump)
+  if (cardEl) {
+    const grid = document.getElementById('cardGrid');
+    cardEl.remove();
+
+    // 3) Empty state keď už nič neostalo
+    if (!grid.querySelector('.card')) {
+      grid.innerHTML = '<div style="padding:20px;color:var(--muted)">No favourites yet.</div>';
+    }
+  }
 }
 
 // ---------- tiny DOM helper ----------
@@ -162,51 +183,28 @@ ctxMenu.className = 'ctx-menu';
 document.body.appendChild(ctxMenu);
 
 function hideCtx() { ctxMenu.style.display = 'none'; }
-function buildCtx(items) {
-    // icon renderer
-    ctxMenu.innerHTML = '';
-    items.filter(Boolean).forEach((it, i) => {
-        let iconNode = null;
-        if (it.icon) {
-            if (/\.(png|jpg|jpeg|webp|gif)$/i.test(it.icon)) {
-                // file image icon
-                iconNode = el('img', {
-                src: it.icon,
-                style: 'width:18px;height:18px;object-fit:contain;opacity:.9;'
-                });
-            } else if (/^(https?:|\/|\.\/|\.\\)/i.test(it.icon)) {
-                // URL too - also treat as image
-                iconNode = el('img', {
-                src: it.icon,
-                style: 'width:18px;height:18px;object-fit:contain;opacity:.9;'
-                });
-            } else {
-                // text / emoji
-                iconNode = el('span', { style:'opacity:.8;font-size:16px;' }, it.icon);
-            }
-        }
 
-        if (it === 'sep') {
-        ctxMenu.appendChild(el('div', { class: 'ctx-sep' }));
-        return;
-        }
-        const btn = el('button', { class: 'ctx-item' }, [
-        iconNode,
-        document.createTextNode(it.label),
-        it.kbd ? el('span', { class: 'ctx-kbd' }, it.kbd) : null
-        ]);
-        btn.onclick = (e) => { hideCtx(); it.onClick?.(e); };
-        ctxMenu.appendChild(btn);
-    });
+
+function buildCtx(items, cardEl) {
+  ctxMenu.innerHTML = '';
+  items.filter(Boolean).forEach(it => {
+    if (it === 'sep') { ctxMenu.appendChild(el('div', { class:'ctx-sep' })); return; }
+    const btn = el('button', { class:'ctx-item' }, [
+      it.icon ? el('span', { style:'opacity:.8;font-size:16px;' }, it.icon) : null,
+      document.createTextNode(it.label),
+      it.kbd ? el('span', { class:'ctx-kbd' }, it.kbd) : null
+    ]);
+    btn.onclick = (e) => { hideCtx(); it.onClick?.(e, cardEl); };  // pass cardEl here
+    ctxMenu.appendChild(btn);
+  });
 }
 
-function showCtx(x, y, items) {
-  buildCtx(items);
-  ctxMenu.style.left = x + 'px';
-  ctxMenu.style.top = y + 'px';
-  ctxMenu.style.display = 'block';
 
-  // keep inside viewport
+function showCtx(x, y, items, cardEl) {
+  buildCtx(items, cardEl);                            // pass cardEl
+  ctxMenu.style.left = x + 'px';
+  ctxMenu.style.top  = y + 'px';
+  ctxMenu.style.display = 'block';
   const r = ctxMenu.getBoundingClientRect();
   let nx = x, ny = y;
   if (r.right > window.innerWidth - 8) nx = Math.max(8, window.innerWidth - r.width - 8);
@@ -214,6 +212,7 @@ function showCtx(x, y, items) {
   ctxMenu.style.left = nx + 'px';
   ctxMenu.style.top  = ny + 'px';
 }
+
 
 document.addEventListener('click', (e) => {
   if (!ctxMenu.contains(e.target)) hideCtx();
@@ -330,10 +329,15 @@ async function renderFavs() {
         e.preventDefault(); e.stopPropagation();
         showCtx(e.clientX, e.clientY, [
           { label: 'Open details', onClick: () => openModal(g) },
-          g.href ? { label: 'Open source page', onClick: () => window.open(g.href, '_blank', 'noopener')} : null,
+          g.href ? { label: 'Open source page', onClick: () => window.open(g.href, '_blank','noopener') } : null,
           'sep',
-          { label: 'Remove from favourites', onClick: async () => { await fav_remove(g); renderFavs(); } },
-        ]);
+          {
+            label: 'Remove from favourites',
+            onClick: async (_ev, cardEl) => {
+              await removeFavSmart(g, cardEl);           
+            }
+          },
+        ], card);                                    
       }
     }, [
       thumb,
