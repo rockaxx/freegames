@@ -1,24 +1,89 @@
-// server.js
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+
+const db = require('./database/db');
 const { scrape } = require('./scrapers/scrape');
-const { createUser, getUser } = require('./database/query');
+const {
+  createUser,
+  getUser,
+  getUserById,
+  usernameTaken,
+  emailTaken,
+  updateUserUsernameEmail,
+  updateUserPassword,
+  // whitelist helpers (not strictly needed here, but available if you want admin tools)
+  createWhitelistUser,
+  getWhitelistUser,
+  getPendingWhitelist,
+  approveWhitelistUser
+} = require('./database/query');
+
 const { registerSearchStream } = require('./api/api');
 const { ADMINS } = require('./config/admins');
 const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth');
 const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
 const { initCommunityTables } = require('./database/community_db');
 
-initCommunityTables().catch(err => console.error('DB init failed:', err));
+// Whitelist API router (login/register/logout/me for whitelist)
+const wlRouter = require('./api/api_whitelist');
 
 const app = express();
 const PORT = process.env.PORT || 4021;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+initCommunityTables().catch(err => console.error('DB init failed:', err));
+
 app.disable('x-powered-by');
 app.use(express.json());
 
-// ---- COMMON isAdmin check
+// ---- 1) Whitelist API must stay open (no gate here)
+app.use('/api/whitelist', wlRouter);
+
+// ---- 2) Attach whitelist user from w_sid cookie and enforce allowed=1
+app.use((req, res, next) => {
+  const cookies = parseCookies(req);
+  const payload = verifyToken(cookies.w_sid);
+  if (!payload) return next();
+
+  // Ensure the wl user is still allowed; if not, nuke cookie
+  db.get(`SELECT allowed FROM whitelist_users WHERE id=?`, [payload.wid], (err, row) => {
+    if (err) {
+      // Do not block on DB error; just continue without wlUser
+      return next();
+    }
+    if (!row || !row.allowed) {
+      res.setHeader(
+        'Set-Cookie',
+        'w_sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' + (IS_PROD ? '; Secure' : '')
+      );
+      return next();
+    }
+    req.wlUser = { id: payload.wid, username: payload.username };
+    next();
+  });
+});
+
+// ---- 3) Gate everything except open paths; require whitelist login
+const OPEN_PATHS = [
+  /^\/api\/whitelist(\/|$)/,
+  /^\/blocked\.html$/,     // the login/register page for whitelist
+  /^\/assets\//,           // favicon, images used by blocked.html
+  /^\/favicon\.ico$/
+];
+
+app.get('/blocked.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'blocked.html'));
+});
+
+app.use((req, res, next) => {
+  const allowedOpen = OPEN_PATHS.some(rx => rx.test(req.path));
+  if (allowedOpen) return next();
+  if (req.wlUser) return next();
+  return res.sendFile(path.join(__dirname, 'public', 'blocked.html'));
+});
+
+// ---- 4) Normal app user attach (separate from whitelist)
 function isAdminUser(username, id) {
   const wanted = ADMINS.get(String(username || '').toLowerCase());
   return Number(wanted) === Number(id);

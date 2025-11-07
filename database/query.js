@@ -93,13 +93,66 @@ function updateUserPassword(id, storedPassword) {
   });
 }
 
+function createWhitelistUser(username, passwordHash) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `INSERT INTO whitelist_users (username,password,allowed) VALUES (?,?,0)`,
+      [username, passwordHash],
+      function(err) {
+        if (err) return reject(err);
+        resolve(this.lastID);
+      }
+    );
+  });
+}
+
+function getWhitelistUser(username) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT * FROM whitelist_users WHERE username=?`,
+      [username],
+      (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      }
+    );
+  });
+}
+
+function getPendingWhitelist() {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT id, username, allowed, created_at FROM whitelist_users WHERE allowed=0 ORDER BY created_at DESC`,
+      [],
+      (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows);
+      }
+    );
+  });
+}
+
+function approveWhitelistUser(id) {
+  return new Promise((resolve, reject) => {
+    db.run(`UPDATE whitelist_users SET allowed=1 WHERE id=?`, [id], function(err) {
+      if (err) return reject(err);
+      resolve(this.changes > 0);
+    });
+  });
+}
+
+
+
 module.exports = {
   createUser,
   getUser,
-  // new:
   getUserById,
   usernameTaken,
   emailTaken,
   updateUserUsernameEmail,
-  updateUserPassword
+  updateUserPassword,
+  createWhitelistUser,
+  getWhitelistUser,
+  getPendingWhitelist,
+  approveWhitelistUser
 };

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GAME.IT — Access</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --accent: #00c3ff; --accent2: #2ea043;
+      --accent-hover: #009dd6; --text: #e6edf3; --muted: #8b949e; --danger: #ff5555;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height:100vh; display:grid; place-items:center;
+    }
+    .box { background: var(--panel); width: 380px; max-width: 92vw; border-radius:12px; padding:24px; box-shadow: 0 0 24px rgba(0,0,0,.4); }
+    h1 { margin-bottom:8px; color: var(--danger); font-size: 22px; }
+    p  { margin-bottom:16px; color: var(--muted); }
+    .tabs { display:flex; gap:8px; margin-bottom:14px; }
+    .tab { flex:1; background:#0f141a; border:1px solid #263241; color:#c9d1d9; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .tab.active { background: #1d2633; border-color:#3b4a61; }
+    form { display:flex; flex-direction:column; gap:10px; }
+    input {
+      background: #0f141a; border:1px solid #263241; color:#e6edf3; padding:10px 12px; border-radius:8px; outline: none;
+    }
+    .btn { border:0; border-radius:8px; padding:10px 12px; color:#fff; font-weight:700; cursor:pointer; }
+    .btn-primary { background: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success  { background: var(--accent2); }
+    .msg { margin-top: 8px; color: var(--muted); min-height:20px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Access Restricted</h1>
+    <p>Login if approved, or register to request whitelist.</p>
+
+    <div class="tabs">
+      <button class="tab active" id="tabLogin">Login</button>
+      <button class="tab" id="tabRegister">Register</button>
+    </div>
+
+    <form id="loginForm">
+      <input name="username" placeholder="Username" required autocomplete="username">
+      <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
+      <button class="btn btn-primary" type="submit">Login</button>
+      <div class="msg" id="loginMsg"></div>
+    </form>
+
+    <form id="registerForm" hidden>
+      <input name="username" placeholder="Username" required autocomplete="username">
+      <input name="password" type="password" placeholder="Password" required autocomplete="new-password">
+      <button class="btn btn-success" type="submit">Register (Request Whitelist)</button>
+      <div class="msg" id="registerMsg"></div>
+    </form>
+  </div>
+
+  <script>
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginMsg = document.getElementById('loginMsg');
+    const registerMsg = document.getElementById('registerMsg');
+
+    tabLogin.addEventListener('click', () => {
+      tabLogin.classList.add('active'); tabRegister.classList.remove('active');
+      loginForm.hidden = false; registerForm.hidden = true;
+      loginMsg.textContent = ''; registerMsg.textContent = '';
+    });
+
+    tabRegister.addEventListener('click', () => {
+      tabRegister.classList.add('active'); tabLogin.classList.remove('active');
+      registerForm.hidden = false; loginForm.hidden = true;
+      loginMsg.textContent = ''; registerMsg.textContent = '';
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginMsg.textContent = 'Logging in...';
+      const payload = Object.fromEntries(new FormData(loginForm));
+      const res = await fetch('/api/whitelist/login', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const j = await res.json().catch(()=>({}));
+      if (res.ok && j.ok) { location.href = '/'; } else {
+        loginMsg.textContent = j.error || 'Login failed.';
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      registerMsg.textContent = 'Submitting...';
+      const payload = Object.fromEntries(new FormData(registerForm));
+      const res = await fetch('/api/whitelist/register', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const j = await res.json().catch(()=>({}));
+      if (res.ok && j.ok) {
+        registerMsg.textContent = 'Request saved. Wait for approval.';
+      } else {
+        registerMsg.textContent = j.error || 'Registration failed.';
+      }
+    });
+  </script>
+</body>
+</html>
