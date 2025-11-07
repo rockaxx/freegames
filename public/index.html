@@ -6,6 +6,27 @@
   <title>GAME.IT</title>
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
+  <script>
+    function wllogout() {
+      fetch('/api/whitelist/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          window.location.reload();
+        } else {
+          alert('whitelist logout fail: ' + (data.error || 'unknown'));
+        }
+      })
+      .catch(err => {
+        console.error('logout err:', err);
+        alert('logout JS error');
+      });
+    }
+  </script>
+
 </head>
 <body>
 
@@ -33,6 +54,7 @@
       <button class="nav__link" data-route="library" onclick="window.location='/library';">Library</button>
       <button class="nav__link" data-route="community" onclick="window.location='/community';">Community</button>
       <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted';">Trusted ❤️</button>
+      <button class="nav__link" data-route="community" onclick="wllogout()">WL Logout</button>
     </nav>
   </div>
 
@@ -110,6 +132,7 @@
 
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
+
 
 </body>
 </html>

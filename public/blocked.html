@@ -7,103 +7,211 @@
   <link rel="icon" href="/assets/favicon.svg">
   <style>
     :root {
-      --bg: #0d1117; --panel: #161b22; --accent: #00c3ff; --accent2: #2ea043;
-      --accent-hover: #009dd6; --text: #e6edf3; --muted: #8b949e; --danger: #ff5555;
+      --bg: #020308;
+      --glass: rgba(255,255,255,.04);
+      --text: #eaf2ff;
+      --muted: #6d7d9c;
+      --accent: #00c3ff;
+      --accent2: #38e06b;
+      --radius: 16px;
     }
-    * { box-sizing:border-box; margin:0; padding:0; }
+
+    /* Hard kill for any visibility flicker */
+    [hidden] { display: none !important; }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
     body {
-      background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      min-height:100vh; display:grid; place-items:center;
+      min-height:100vh;
+      background: radial-gradient(circle at 35% -20%, #0040ff33, transparent 60%), var(--bg);
+      display:flex; align-items:center; justify-content:center;
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     }
-    .box { background: var(--panel); width: 380px; max-width: 92vw; border-radius:12px; padding:24px; box-shadow: 0 0 24px rgba(0,0,0,.4); }
-    h1 { margin-bottom:8px; color: var(--danger); font-size: 22px; }
-    p  { margin-bottom:16px; color: var(--muted); }
-    .tabs { display:flex; gap:8px; margin-bottom:14px; }
-    .tab { flex:1; background:#0f141a; border:1px solid #263241; color:#c9d1d9; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:600; }
-    .tab.active { background: #1d2633; border-color:#3b4a61; }
-    form { display:flex; flex-direction:column; gap:10px; }
+
+    .wrap { width:420px; max-width:95vw; }
+
+    header {
+      display:flex; justify-content:center; align-items:center; gap:12px;
+      margin-bottom:28px; opacity:.95;
+    }
+    header svg { width:36px; height:36px; }
+
+    .card {
+      background:var(--glass);
+      backdrop-filter:blur(20px) saturate(150%);
+      border:1px solid rgba(255,255,255,.08);
+      padding:28px; border-radius:var(--radius);
+      box-shadow:0 0 40px rgba(0,0,0,.45);
+    }
+
+    h2 { font-size:22px; margin-bottom:6px; }
+    p  { font-size:14px; color:var(--muted); margin-bottom:22px; }
+
+    .tabs { display:flex; gap:8px; margin-bottom:18px; }
+    .tab {
+      flex:1; cursor:pointer; padding:10px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03);
+      color:var(--muted); font-weight:600; font-size:14px;
+      transition:all .2s ease;
+    }
+    .tab.active {
+      background:rgba(255,255,255,.10);
+      color:var(--text);
+      border-color:rgba(255,255,255,.22);
+    }
+
+    form { display:flex; flex-direction:column; gap:12px; }
     input {
-      background: #0f141a; border:1px solid #263241; color:#e6edf3; padding:10px 12px; border-radius:8px; outline: none;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px; padding:12px 14px;
+      color:var(--text); font-size:15px; outline:none;
     }
-    .btn { border:0; border-radius:8px; padding:10px 12px; color:#fff; font-weight:700; cursor:pointer; }
-    .btn-primary { background: var(--accent); }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-success  { background: var(--accent2); }
-    .msg { margin-top: 8px; color: var(--muted); min-height:20px; }
+    input:focus { border-color:var(--accent); }
+
+    .btn {
+      padding:12px 14px; border:none; cursor:pointer;
+      border-radius:10px; color:#fff; font-weight:700;
+      font-size:15px; transition:opacity .2s;
+    }
+    .btn:hover { opacity:.85; }
+    .b1 { background:var(--accent); }
+    .b2 { background:var(--accent2); }
+
+    .msg { font-size:13px; color:var(--muted); min-height:20px; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Access Restricted</h1>
-    <p>Login if approved, or register to request whitelist.</p>
 
-    <div class="tabs">
-      <button class="tab active" id="tabLogin">Login</button>
-      <button class="tab" id="tabRegister">Register</button>
+<div class="wrap">
+  <header>
+    <!-- Minimal neon logo -->
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="70" fill="#00c3ff33"/>
+      <circle cx="100" cy="100" r="40" fill="#00c3ff55"/>
+      <circle cx="100" cy="100" r="16" fill="#00c3ff"/>
+    </svg>
+    <h1 style="font-size:24px;font-weight:800;letter-spacing:.5px;">GAME.IT</h1>
+  </header>
+
+  <div class="card">
+    <h2>Access</h2>
+    <p>Login if whitelisted. Or switch tab to request access.</p>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" id="tabLogin" role="tab" aria-selected="true" aria-controls="loginForm">Login</button>
+      <button type="button" class="tab" id="tabRegister" role="tab" aria-selected="false" aria-controls="registerForm">Register</button>
     </div>
 
-    <form id="loginForm">
+    <!-- LOGIN -->
+    <form id="loginForm" autocomplete="on">
       <input name="username" placeholder="Username" required autocomplete="username">
       <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
-      <button class="btn btn-primary" type="submit">Login</button>
+      <button class="btn b1" type="submit">Login</button>
       <div class="msg" id="loginMsg"></div>
     </form>
 
-    <form id="registerForm" hidden>
+    <!-- REGISTER -->
+    <form id="registerForm" hidden autocomplete="off">
       <input name="username" placeholder="Username" required autocomplete="username">
       <input name="password" type="password" placeholder="Password" required autocomplete="new-password">
-      <button class="btn btn-success" type="submit">Register (Request Whitelist)</button>
+      <button class="btn b2" type="submit">Request Access</button>
       <div class="msg" id="registerMsg"></div>
     </form>
   </div>
+</div>
 
-  <script>
-    const tabLogin = document.getElementById('tabLogin');
-    const tabRegister = document.getElementById('tabRegister');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const loginMsg = document.getElementById('loginMsg');
-    const registerMsg = document.getElementById('registerMsg');
+<script>
+  // Tabs
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const loginMsg = document.getElementById('loginMsg');
+  const registerMsg = document.getElementById('registerMsg');
 
-    tabLogin.addEventListener('click', () => {
-      tabLogin.classList.add('active'); tabRegister.classList.remove('active');
-      loginForm.hidden = false; registerForm.hidden = true;
-      loginMsg.textContent = ''; registerMsg.textContent = '';
+  // Hard-init (avoids FOUC if some global CSS messed with hidden)
+  registerForm.hidden = true;
+  loginForm.hidden = false;
+
+  tabLogin.onclick = () => {
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+    tabLogin.setAttribute('aria-selected','true');
+    tabRegister.setAttribute('aria-selected','false');
+
+    loginForm.hidden = false;
+    registerForm.hidden = true;
+
+    loginMsg.textContent = '';
+    registerMsg.textContent = '';
+  };
+
+  tabRegister.onclick = () => {
+    tabRegister.classList.add('active');
+    tabLogin.classList.remove('active');
+    tabRegister.setAttribute('aria-selected','true');
+    tabLogin.setAttribute('aria-selected','false');
+
+    loginForm.hidden = true;
+    registerForm.hidden = false;
+
+    loginMsg.textContent = '';
+    registerMsg.textContent = '';
+  };
+
+  // Login submit
+  loginForm.onsubmit = async (e) => {
+    e.preventDefault();
+    loginMsg.textContent = '...';
+    const payload = Object.fromEntries(new FormData(loginForm));
+    const r = await fetch('/api/whitelist/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      credentials: 'include'
     });
+    const j = await r.json().catch(()=>({}));
+    if (r.ok && j.ok) location.href = '/';
+    if (r.ok && j.ok) {
+    location.href = '/';
+    } else {
+    if (j.error === 'not-approved') {
+        loginMsg.textContent = 'Your access request is still pending.';
+    } else if (j.error === 'invalid') {
+        loginMsg.textContent = 'Username or password is wrong';
+    } else {
+        loginMsg.textContent = j.error || 'login failed';
+    }
+    }
+  };
 
-    tabRegister.addEventListener('click', () => {
-      tabRegister.classList.add('active'); tabLogin.classList.remove('active');
-      registerForm.hidden = false; loginForm.hidden = true;
-      loginMsg.textContent = ''; registerMsg.textContent = '';
+  // Register submit
+  registerForm.onsubmit = async (e) => {
+    e.preventDefault();
+    registerMsg.textContent = '...';
+    const payload = Object.fromEntries(new FormData(registerForm));
+    const r = await fetch('/api/whitelist/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      credentials: 'include'
     });
+    const j = await r.json().catch(()=>({}));
 
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      loginMsg.textContent = 'Logging in...';
-      const payload = Object.fromEntries(new FormData(loginForm));
-      const res = await fetch('/api/whitelist/login', {
-        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-      });
-      const j = await res.json().catch(()=>({}));
-      if (res.ok && j.ok) { location.href = '/'; } else {
-        loginMsg.textContent = j.error || 'Login failed.';
-      }
-    });
-
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      registerMsg.textContent = 'Submitting...';
-      const payload = Object.fromEntries(new FormData(registerForm));
-      const res = await fetch('/api/whitelist/register', {
-        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-      });
-      const j = await res.json().catch(()=>({}));
-      if (res.ok && j.ok) {
-        registerMsg.textContent = 'Request saved. Wait for approval.';
+    if (r.ok && j.ok) {
+      if (j.autoApproved || j.message === 'auto-approved') {
+        registerMsg.textContent = 'You are already approved, you can login now.';
       } else {
-        registerMsg.textContent = j.error || 'Registration failed.';
+        registerMsg.textContent = 'Submitted — wait for approval.';
       }
-    });
-  </script>
+    } else {
+      registerMsg.textContent = j.error || 'register failed';
+    }
+  };
+</script>
+
 </body>
 </html>

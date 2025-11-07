@@ -15,21 +15,36 @@ const {
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-/**
- * POST /api/whitelist/register
- * Body: { username, password }
- * Creates a pending whitelist account (allowed=0). If username already exists -> 409.
- */
+// paths
+const cfgDir = path.join(__dirname, '..', 'config');
+const wantsLogPath = path.join(cfgDir, 'wl_wants.logs');
+const visitorsPath = path.join(cfgDir, 'visitors.config');
+
+// ensure config dir exists
+try { fs.mkdirSync(cfgDir, { recursive: true }); } catch { /* noop */ }
 
 function loadWhitelistUsernames() {
   try {
-    const p = path.join(__dirname, '..', 'config', 'visitors.config');
-    return fs.readFileSync(p, 'utf8')
+    return fs.readFileSync(visitorsPath, 'utf8')
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(s => s && !s.startsWith('#'));
   } catch {
     return [];
+  }
+}
+
+function sanitizeUsername(u) {
+  return String(u || '').replace(/[\r\n]/g, ' ').trim();
+}
+
+function appendWantLog(username, ip) {
+  const line = `${new Date().toISOString()} | ${sanitizeUsername(username)} | ${ip || '-'}`;
+  try {
+    fs.appendFileSync(wantsLogPath, line + '\n', 'utf8');
+  } catch (e) {
+    // best-effort logging, don't fail the request
+    console.warn('[WL] failed to write wl_wants.logs:', e.message || e);
   }
 }
 
@@ -40,8 +55,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'missing-fields' });
     }
 
-    // jediná autorita na "taken" = DB
-    const exists = await getWhitelistUser(username); // SELECT * FROM whitelist_users ... :contentReference[oaicite:1]{index=1}
+    const uname = sanitizeUsername(username);
+
+    // Only DB decides "taken"
+    const exists = await getWhitelistUser(uname);
     if (exists) {
       return res.status(409).json({ ok: false, error: 'username-taken' });
     }
@@ -50,22 +67,27 @@ router.post('/register', async (req, res) => {
     const hash = scryptSync(password, salt, 64);
     const stored = `${salt.toString('hex')}:${hash.toString('hex')}`;
 
-    // create pending
-    const id = await createWhitelistUser(username, stored); // allowed=0 by default :contentReference[oaicite:2]{index=2}
+    // Create as pending
+    const id = await createWhitelistUser(uname, stored); // allowed = 0 by default
 
-    // ak je v visitors.config → hneď approve (allowed=1)
-    const inConfig = loadWhitelistUsernames().includes(username);
+    // Auto-approve if in visitors.config
+    const inConfig = loadWhitelistUsernames().includes(uname);
     if (inConfig) {
-      await approveWhitelistUser(id); // UPDATE ... SET allowed=1 WHERE id=? :contentReference[oaicite:3]{index=3}
-      return res.json({ ok: true, message: 'auto-approved' });
+      await approveWhitelistUser(id);
+      return res.json({ ok: true, message: 'auto-approved', autoApproved: true });
     }
 
-    return res.json({ ok: true, message: 'registration-pending' });
+    // Pending → log intent
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+    appendWantLog(uname, ip);
+
+    return res.json({ ok: true, message: 'registration-pending', autoApproved: false });
   } catch (e) {
     console.error('WL register fail:', e);
     return res.status(500).json({ ok: false, error: 'register-failed' });
   }
 });
+
 /**
  * POST /api/whitelist/login
  * Body: { username, password }
@@ -78,7 +100,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'missing-fields' });
     }
 
-    const user = await getWhitelistUser(username);
+    const user = await getWhitelistUser(sanitizeUsername(username));
     if (!user) return res.status(401).json({ ok: false, error: 'invalid' });
     if (!user.allowed) return res.status(403).json({ ok: false, error: 'not-approved' });
 
@@ -90,7 +112,6 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ ok: false, error: 'invalid' });
     }
 
-    // whitelist session token
     const token = signToken({ wid: user.id, username: user.username });
     const cookie = buildCookie('w_sid', token, {
       secure: IS_PROD,
@@ -130,10 +151,7 @@ router.get('/me', (req, res) => {
 });
 
 /**
- * Admin helpers (optional):
- * GET /api/whitelist/pending
- * POST /api/whitelist/approve/:id
- * You can wrap these with your admin guard later; left open for now as scaffolding.
+ * Admin helpers
  */
 router.get('/pending', async (_req, res) => {
   const rows = await getPendingWhitelist();
