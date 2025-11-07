@@ -103,7 +103,8 @@
 
   // ---------- Renderers ----------
   function renderLoggedOut() {
-    accBtn.innerHTML = `<img src="/assets/user.png" alt="User">`;
+    // zobrazí user.png namiesto písmena
+    accBtn.innerHTML = `<img src="/assets/user.png" alt="User" class="avatar-icon">`;
     accBox.innerHTML = `
       <div class="account-tabs">
         <button id="tabLogin" class="tab active">Login</button>
@@ -218,6 +219,8 @@
       if (!data?.ok) return alert(data?.error || 'Invalid login');
       renderLogged(data.user);
       accBox.hidden = true;
+      //refresh
+      window.location.reload();
     });
 
     formRegister?.addEventListener('submit', async (e) => {
@@ -277,7 +280,7 @@
       if (!inputCurr.value) return alert('Current password is required to change password.');
       if (!inputNew.value) return alert('Enter a new password.');
       if (inputNew.value !== inputNew2.value) return alert('New passwords do not match.');
-      if (inputNew.value.length < 6) return alert('New password must be at least 6 characters.');
+      if (inputNew.value.length < 2) return alert('New password must be at least 6 characters.');
     }
 
     const payload = {};
@@ -304,14 +307,14 @@
     let data = null;
     try {
       // Try PATCH first
-      let r = await fetch('/api/user', {
+      let r = await fetch('/api/account', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (r.status === 404) {
         // Fallback to POST /api/user/update
-        r = await fetch('/api/user/update', {
+        r = await fetch('/api/account/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

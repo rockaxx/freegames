@@ -46,6 +46,7 @@ registerSearchStream(app);
 app.use(require('./api/api_community'));
 app.use(require('./api/api_library'));
 app.use(require('./api/api_profile'));
+app.use(require('./api/api_account'));
 app.use(express.json({ limit: '5mb' }));
 
 // Attach req.user if valid cookie present
@@ -75,6 +76,9 @@ app.get('/profile', (req, res) => {
 });
 
 app.get('/settings', (req, res) => {
+  if (!req.user) {
+    return res.sendFile(path.join(__dirname, 'public', 'autherr.html'));
+  }
   res.sendFile(path.join(__dirname, 'public', 'settings.html'));
 });
 
@@ -163,6 +167,83 @@ app.post('/api/logout', (_req,res) => {
   res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax' + (IS_PROD ? '; Secure' : ''));
   return res.json({ ok:true });
 });
+
+// POST /api/account/update  -> change username/email (+ optional password)
+app.post('/api/account/update', async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ ok:false, error:'not logged in' });
+
+    const { username, email, currPass, newPass } = req.body || {};
+    const id = req.user.id;
+
+    // basic validation
+    const newUsername = String(username || '').trim();
+    const newEmail = String(email || '').trim();
+    if (!newUsername || !newEmail) {
+      return res.status(400).json({ ok:false, error:'missing fields' });
+    }
+
+    // load current user
+    const me = await require('./database/query').getUserById(id);
+    if (!me) return res.status(404).json({ ok:false, error:'not-found' });
+
+    // uniqueness checks (case-insensitive)
+    const { usernameTaken, emailTaken, updateUserUsernameEmail, updateUserPassword } = require('./database/query');
+    if (await usernameTaken(newUsername, id)) {
+      return res.status(409).json({ ok:false, error:'username-taken' });
+    }
+    if (await emailTaken(newEmail, id)) {
+      return res.status(409).json({ ok:false, error:'email-taken' });
+    }
+
+    // handle optional password change
+    const wantsPasswordChange = !!(newPass && newPass.length);
+    if (wantsPasswordChange) {
+      if (!currPass) {
+        return res.status(400).json({ ok:false, error:'need-current-password' });
+      }
+      // verify current password
+      const [saltHex, hashHex] = String(me.password || '').split(':');
+      if (!saltHex || !hashHex) {
+        return res.status(500).json({ ok:false, error:'bad-password-format' });
+      }
+      const { scryptSync, timingSafeEqual, randomBytes } = require('crypto');
+      const salt = Buffer.from(saltHex, 'hex');
+      const hash = Buffer.from(hashHex, 'hex');
+      const test = scryptSync(currPass, salt, 64);
+      if (!timingSafeEqual(hash, test)) {
+        return res.status(400).json({ ok:false, error:'wrong-current-password' });
+      }
+      if (String(newPass).length < 6) {
+        return res.status(400).json({ ok:false, error:'password-too-short' });
+      }
+
+      // create new stored password "salt:hash"
+      const newSalt = randomBytes(16);
+      const newHash = scryptSync(newPass, newSalt, 64);
+      const stored = newSalt.toString('hex') + ':' + newHash.toString('hex');
+      await updateUserPassword(id, stored);
+    }
+
+    // update username/email if changed
+    if (me.username !== newUsername || me.email !== newEmail) {
+      await updateUserUsernameEmail(id, newUsername, newEmail);
+    }
+
+    // refresh cookie with new username/email so frontend immediately sees it
+    const { signToken, buildCookie } = require('./auth');
+    const IS_PROD = process.env.NODE_ENV === 'production';
+    const token = signToken({ id, username: newUsername, email: newEmail });
+    const cookie = buildCookie('sid', token, { secure: IS_PROD, sameSite: 'Lax', maxAgeSec: 60*60*24*7 });
+    res.setHeader('Set-Cookie', cookie);
+
+    return res.json({ ok:true, user: { id, username: newUsername, email: newEmail } });
+  } catch (e) {
+    console.error('ACCOUNT UPDATE FAIL:', e?.message || e);
+    return res.status(500).json({ ok:false, error:'update-failed' });
+  }
+});
+
 
 // ==== scraping routes stay as-is ====
 

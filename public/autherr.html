@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>K-D-A Launcher</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<!-- loading screen -->
+<div id="loadingScreen" class="loading-screen" hidden>
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <p>Loading games…</p>
+  </div>
+</div>
+
+<!-- topbar -->
+<header class="topbar">
+  <div class="topbar__left">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+        <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+      </svg>
+      <span class="brand__text">K-D-A Launcher</span>
+    </div>
+
+    <nav class="nav">
+      <button class="nav__link active" data-route="store" onclick="window.location='/';">Underground</button>
+      <button class="nav__link" data-route="library" onclick="window.location='/library';">Library</button>
+      <button class="nav__link" data-route="community" onclick="window.location='/community';">Community</button>
+      <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted';">Trusted ❤️</button>
+    </nav>
+  </div>
+
+  <div class="topbar__right">
+    <div class="search">
+      <input id="searchInput" type="search" placeholder="Search games…">
+    </div>
+  <!-- mount point for auth UI (JS will inject everything here) --> 
+  <div id="auth-root"></div>
+</header>
+
+<!-- layout -->
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__title">Navigation</div>
+      <a class="sidebar__item active" href="/">Games</a>
+    </div>
+
+    <div class="sidebar__section">
+      <div class="sidebar__title">Games</div>
+      <div class="sidebar__games" id="gameList"></div>
+    </div>
+  </aside>
+
+    <main class="content">
+        <section class="error-page">
+        <h1>Error: you are not logged in</h1>
+        <p>Please, login to continue!</p>
+        <button class="btn btn--ghost" onclick="window.location='/'">Go to Home</button>
+        </section>
+    </main>
+
+</div>
+
+<script src="/js/auth.js"></script>
+
+</body>
+</html>

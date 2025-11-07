@@ -113,7 +113,7 @@ if (location.hash === '#comments'){
 }
 
 async function vote(delta) {
-  if (!me) return alert('Login required');
+  if (!me) return window.showWarning('Login required');
   const r = await fetch('/api/community/vote', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -129,7 +129,7 @@ async function vote(delta) {
 }
 
 async function rep(delta) {
-  if (!me) return alert('Login required');
+  if (!me) return window.showWarning('Login required');
   const r = await fetch('/api/game/rep', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -160,7 +160,7 @@ async function loadComments() {
 
 els.form.onsubmit = async (e) => {
   e.preventDefault();
-  if (!me) return alert('Login required');
+  if (!me) return window.showWarning('Login required');
   const body = els.input.value.trim();
   if (!body) return;
   const r = await fetch('/api/community/comment', {

@@ -122,7 +122,7 @@
     if (changingPass) {
       if (!currPass) { setMsg('Enter your current password to change it.', 'auth-error'); return; }
       if (newPass !== newPass2) { setMsg('New passwords do not match.', 'auth-error'); return; }
-      if (newPass.length < 6) { setMsg('New password should be at least 6 characters.', 'auth-error'); return; }
+      if (newPass.length < 2) { setMsg('New password should be at least 6 characters.', 'auth-error'); return; }
     }
 
     const originalText = btn.textContent;
@@ -131,8 +131,12 @@
     setMsg('Saving…');
 
     try {
-      const payload = { username, email };
-      if (changingPass) { payload.currPass = currPass; payload.newPass = newPass; }
+      const payload = { username };
+      if (changingPass) {
+        payload.currPass = currPass;
+        payload.newPass = newPass;
+      }
+
 
       const r = await fetch(API_UPDATE_URL, {
         method: 'POST',

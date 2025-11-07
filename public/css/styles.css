@@ -76,6 +76,15 @@ body{
   background:linear-gradient(135deg,#263a50,#172738); font-weight:800; border:1px solid rgba(255,255,255,.08); cursor: pointer;
 }
 
+.avatar img.avatar-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: none;
+}
+
 .layout{display:grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 56px)}
 .sidebar{
   background:linear-gradient(180deg,#0e1623,#0f1923 70%);

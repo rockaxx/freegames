@@ -26,7 +26,6 @@ function isAdminUser(username, id) {
   return Number(wanted) === Number(id);
 }
 
-
 router.get('/api/profile/me', requireUser, async (req,res)=>{
   const u = await getUserById(req.user.id);
   if (!u) return res.status(404).json({ ok:false, error:'not-found' });
@@ -42,7 +41,6 @@ router.get('/api/profile/me', requireUser, async (req,res)=>{
     }
   });
 });
-
 
 router.get('/api/profile/:username', async (req,res)=>{
   const u = await getUserByName(req.params.username);
@@ -112,7 +110,6 @@ router.post('/api/profile/:username/comments', requireUser, async (req,res)=>{
   res.json({ ok:true, comments: list });
 });
 
-
 router.get('/api/profile/id/:id', async (req, res) => {
   const id = Number(req.params.id || 0);
   if (!id) return res.status(400).json({ ok:false, error:'bad-id' });
@@ -131,7 +128,5 @@ router.get('/api/profile/id/:id', async (req, res) => {
     }
   });
 });
-
-
 
 module.exports = router;

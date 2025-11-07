@@ -13,6 +13,24 @@
   <!-- NEW: detail-only stylesheet -->
   <link rel="stylesheet" href="/css/community_detail.css">
 </head>
+  <script>
+    let warnTimer = null;
+
+    window.showWarning = (msg) => {
+      const box = document.getElementById('warnBox');
+
+      box.textContent = msg;
+      box.style.display = 'block';
+
+      if (warnTimer) clearTimeout(warnTimer);
+
+      warnTimer = setTimeout(() => {
+        box.style.display = 'none';
+        warnTimer = null;
+      }, 3000);
+    };
+  </script>
+
 <body>
 
 <header class="topbar">
@@ -31,9 +49,8 @@
       <button class="nav__link trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
     </nav>
   </div>
-  <div class="topbar__right">
-    <div class="avatar" id="accountBtn" title="Your account">A</div>
-  </div>
+  <!-- mount point for auth UI (JS will inject everything here) -->
+  <div id="auth-root"></div>
 </header>
 
 <div class="layout">
@@ -101,6 +118,13 @@
     </article>
   </main>
 </div>
+<div id="warnBox" style="
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  background:#a00; color:#fff; padding:10px 16px; border-radius:8px;
+  font-weight:600; display:none; z-index:999999;
+  box-shadow:0 4px 14px rgba(0,0,0,.4);
+"></div>
+<script src="/js/auth.js"></script>
 
 <script src="/js/community_detail.js"></script>
 </body>

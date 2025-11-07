@@ -207,7 +207,7 @@ composerCancel?.addEventListener('click', () => {
 // On successful submit, close composer the same way
 els.composerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!state.me) return alert('Login required');
+  if (!state.me) return window.showWarning('Login required');
 
   const title      = document.getElementById('threadTitle').value.trim();
   const category   = document.getElementById('threadCategory').value;
