@@ -20,27 +20,54 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 app.disable('x-powered-by');
 app.use(express.json());
 
-app.use((req, _res, next) => {
-  const cookies = parseCookies(req);
-  const tok = cookies.sid;
-  const payload = verifyToken(tok);
-  if (payload) req.user = { id: payload.id, username: payload.username, email: payload.email };
-  next();
-});
-
 registerSearchStream(app);
 app.use(require('./api/api_community'));
 app.use(require('./api/api_library'));
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+app.use(require('./api/api_profile'));
+app.use(express.json({ limit: '5mb' }));
+
+const ADMINS = new Map();
+try {
+  const txt = fs.readFileSync(path.join(__dirname,'admins.config'),'utf8');
+  txt.split(/\r?\n/).forEach(line=>{
+    const [name,id] = line.split(':').map(s=>s.trim());
+    if(name && id) ADMINS.set(name.toLowerCase(), Number(id));
+  });
+} catch{}
 
 // Attach req.user if valid cookie present
 app.use((req, _res, next) => {
   const cookies = parseCookies(req);
   const tok = cookies.sid;
   const payload = verifyToken(tok);
-  if (payload) req.user = { id: payload.id, username: payload.username, email: payload.email };
+  if (payload) {
+    const isAdmin = ADMINS.get(payload.username.toLowerCase()) === payload.id;
+    req.user = {
+      id: payload.id,
+      username: payload.username,
+      email: payload.email,
+      role: isAdmin ? 'admin' : 'member'
+    };
+  }
   next();
 });
+
+
+app.get(['/profile/:username', '/profile/id/:id'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+app.get('/profile', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'error.html'));
+});
+
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+
+
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+
 
 app.get('/community/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'community_detail.html'));
@@ -202,6 +229,10 @@ app.get('/api/all/stream', async (req, res) => {
 // Frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', 'error.html'));
 });
 
 app.listen(PORT, () => {

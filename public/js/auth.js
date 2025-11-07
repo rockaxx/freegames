@@ -142,6 +142,7 @@
       </div>
       <div class="account-actions">
         <button id="settingsBtn" class="btn btn--ghost" style="width:100%;">Settings</button>
+        <button id="profileBtn" class="btn btn--ghost" style="width:100%;">Profile</button>
         <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout</button>
       </div>
     `;
@@ -242,32 +243,19 @@
   function bindLoggedInEvents() {
     const btnLogout = accBox.querySelector('#logoutBtn');
     const btnSettings = accBox.querySelector('#settingsBtn');
-
+    const btnProfile = accBox.querySelector('#profileBtn');
     btnLogout?.addEventListener('click', async () => {
       try { await fetch('/api/logout', { method: 'POST' }); } catch (_) {}
       location.reload();
     });
-
     btnSettings?.addEventListener('click', () => {
-      openOverlay(currentUser);
+      location.href = `/settings`;
       accBox.hidden = true;
     });
-  }
-
-  // ---------- Overlay (Settings) ----------
-  function openOverlay(user) {
-    // pre-fill
-    inputUser.value = user?.username || '';
-    inputEmail.value = user?.email || '';
-    inputCurr.value = '';
-    inputNew.value = '';
-    inputNew2.value = '';
-
-    overlay.hidden = false;
-    document.body.classList.add('no-scroll');
-
-    // focus first field
-    setTimeout(() => inputUser.focus(), 0);
+    btnProfile?.addEventListener('click', () => {
+      location.href = `/profile/${encodeURIComponent(currentUser.username)}`;
+      accBox.hidden = true;
+    });
   }
 
   function closeOverlay() {

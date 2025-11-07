@@ -314,7 +314,151 @@ module.exports = {
   importLibraryItems,
 };
 
+// ===== Profiles =====
 
+async function initProfileTables() {
+  // base profile (bio + avatar)
+  await run(`CREATE TABLE IF NOT EXISTS profiles(
+    user_id INTEGER PRIMARY KEY,
+    bio TEXT,
+    avatar TEXT,
+    updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
+  );`);
+
+  // extra short info lines on profile
+  await run(`CREATE TABLE IF NOT EXISTS profile_extras(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+  );`);
+
+  // profile reputation (per voter)
+  await run(`CREATE TABLE IF NOT EXISTS profile_rep(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,   -- profile owner
+    voter_id INTEGER NOT NULL,  -- who voted
+    value INTEGER NOT NULL CHECK (value IN (-1, 1)),
+    created_at DATETIME NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, voter_id)
+  );`);
+
+  // comments under profile
+  await run(`CREATE TABLE IF NOT EXISTS profile_comments(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_user_id INTEGER NOT NULL, -- profile owner
+    author_user_id INTEGER NOT NULL,  -- commenter
+    body TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+  );`);
+}
+
+// make sure profile tables also init
+const _initCommunityTables_orig2 = initCommunityTables;
+initCommunityTables = async function initAllWithProfiles() {
+  await _initCommunityTables_orig2();
+  await initLibraryTables?.();  // if present
+  await initProfileTables();
+};
+
+// Basic user lookup by username (needed by API)
+async function getUserByName(username) {
+  return await get(`SELECT id, username, email FROM users WHERE username = ? LIMIT 1`, [username]);
+}
+
+// Read a full profile with aggregates
+async function getProfileByUserId(userId, viewerId = -1) {
+  const base = await get(`SELECT user_id, bio, avatar FROM profiles WHERE user_id=?`, [userId]);
+  const extras = await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+  const rep = await get(`SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`, [userId]);
+  const my = (viewerId && viewerId > 0)
+    ? await get(`SELECT value FROM profile_rep WHERE user_id=? AND voter_id=?`, [userId, viewerId])
+    : null;
+
+  return {
+    user_id: userId,
+    bio: base?.bio || '',
+    avatar: base?.avatar || '',
+    extras,
+    repScore: rep?.score || 0,
+    myRep: my?.value || 0
+  };
+}
+
+async function setProfileBio(userId, bio) {
+  await run(
+    `INSERT INTO profiles(user_id,bio,avatar,updated_at)
+     VALUES(?,?,NULL,datetime('now'))
+     ON CONFLICT(user_id) DO UPDATE SET bio=excluded.bio, updated_at=excluded.updated_at`,
+    [userId, bio]
+  );
+}
+
+async function setAvatar(userId, dataUrl) {
+  await run(
+    `INSERT INTO profiles(user_id,bio,avatar,updated_at)
+     VALUES(?,?,?,datetime('now'))
+     ON CONFLICT(user_id) DO UPDATE SET avatar=excluded.avatar, updated_at=excluded.updated_at`,
+    [userId, '', dataUrl]
+  );
+  // return saved avatar to API
+  const row = await get(`SELECT avatar FROM profiles WHERE user_id=?`, [userId]);
+  return row?.avatar || '';
+}
+
+async function addExtra(userId, text) {
+  await run(`INSERT INTO profile_extras(user_id,text) VALUES(?,?)`, [userId, text]);
+  return await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+}
+
+async function delExtra(userId, idx) {
+  // idx is 0-based in UI, map to actual row by order
+  const rows = await all(`SELECT id FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+  const row = rows[idx];
+  if (row) await run(`DELETE FROM profile_extras WHERE id=? AND user_id=?`, [row.id, userId]);
+  return await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+}
+
+async function repProfile(voterId, username, delta) {
+  const u = await getUserByName(username);
+  if (!u) return { ok:false, error:'user-not-found' };
+  if (u.id === voterId) return { ok:false, error:'self-vote' };
+
+  // upsert-like: replace existing or insert
+  await run(
+    `INSERT INTO profile_rep(user_id, voter_id, value)
+     VALUES(?,?,?)
+     ON CONFLICT(user_id, voter_id) DO UPDATE SET value=excluded.value`,
+    [u.id, voterId, delta]
+  );
+  const r = await get(`SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`, [u.id]);
+  return { ok:true, score: r?.score || 0 };
+}
+
+async function listProfileComments(username) {
+  const u = await getUserByName(username);
+  if (!u) return [];
+  return await all(`
+    SELECT c.id, c.body, c.created_at,
+           COALESCE(a.username,'Anonymous') AS author
+    FROM profile_comments c
+    LEFT JOIN users a ON a.id = c.author_user_id
+    WHERE c.profile_user_id=?
+    ORDER BY c.id DESC
+  `, [u.id]);
+}
+
+async function addProfileComment(authorId, username, body) {
+  const u = await getUserByName(username);
+  if (!u) return [];
+  await run(`INSERT INTO profile_comments(profile_user_id,author_user_id,body) VALUES(?,?,?)`,
+    [u.id, authorId, body]);
+  return await listProfileComments(username);
+}
+
+async function getUserById(id) {
+  return await get(`SELECT id, username, email, created_at FROM users WHERE id=?`, [id]);
+}
 
 module.exports = {
   initCommunityTables,
@@ -331,4 +475,14 @@ module.exports = {
   removeLibraryItem,
   toggleLibraryItem,
   importLibraryItems,
+  getUserByName,
+  getUserById,
+  getProfileByUserId,
+  setProfileBio,
+  addExtra,
+  delExtra,
+  setAvatar,
+  repProfile,
+  listProfileComments,
+  addProfileComment,
 };

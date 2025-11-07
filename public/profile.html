@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>K-D-A Launcher — Profile</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__left">
+    <div class="brand" onclick="window.location='/'" role="button" aria-label="Go home">
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+        <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+      </svg>
+      <span class="brand__text">K-D-A Launcher</span>
+    </div>
+    <nav class="nav">
+      <button class="nav__link" onclick="window.location='/'">Underground</button>
+      <button class="nav__link" onclick="window.location='/library'">Library</button>
+      <button class="nav__link" onclick="window.location='/community'">Community</button>
+      <button class="nav__link trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
+    </nav>
+  </div>
+  <div class="topbar__right">
+    <div id="auth-root"></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar__section">
+      <div class="sidebar__title">Navigation</div>
+      <a class="sidebar__item" href="/">Games</a>
+      <a class="sidebar__item" href="/community">Community</a>
+      <a class="sidebar__item active" href="/profile">Profile</a>
+      <a class="sidebar__item" href="/settings">Settings</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <section class="profile-card">
+      <div class="profile__header">
+        <div class="avatar-wrap">
+          <img id="avatarImg" class="avatar-lg" alt="avatar">
+          <input id="avatarFile" type="file" accept="image/*" hidden>
+          <button id="changeAvatarBtn" class="btn btn--ghost">Change picture</button>
+        </div>
+
+        <div class="profile__id">
+          <h1 id="pUsername">username</h1>
+          <div class="chips">
+            <span class="chip" id="pCreated"></span>
+            <span class="chip chip--rep">Rep: <strong id="pRep">0</strong></span>
+          </div>
+
+          <div class="rep-actions">
+            <button id="repUp" class="btn sm">+rep</button>
+            <button id="repDown" class="btn sm btn--ghost">-rep</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile__body">
+        <div class="bio">
+          <div class="section-head">
+            <h2>Bio</h2>
+            <button id="editBioBtn" class="btn sm btn--ghost">Edit</button>
+          </div>
+          <p id="bioText" class="bio__text muted">No bio yet.</p>
+          <form id="bioForm" class="bio__form" hidden>
+            <textarea id="bioInput" rows="4" placeholder="Write your bio…"></textarea>
+            <div class="row">
+              <button class="btn btn--primary sm" type="submit">Save</button>
+              <button id="bioCancel" class="btn sm btn--ghost" type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="extras">
+          <div class="section-head">
+            <h2>More info</h2>
+            <button id="addExtraBtn" class="btn sm btn--ghost">Add</button>
+          </div>
+          <ul id="extraList" class="extra-list"></ul>
+
+          <form id="extraForm" class="extra__form" hidden>
+            <input id="extraInput" type="text" placeholder="e.g., Hardware, skills, links">
+            <div class="row">
+              <button class="btn btn--primary sm" type="submit">Add</button>
+              <button id="extraCancel" class="btn sm btn--ghost" type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="comments-card">
+      <div class="section-head">
+        <h2>Comments</h2>
+      </div>
+      <div id="commentsList" class="comments"></div>
+      <form id="commentForm" class="comment-form">
+        <input id="commentInput" type="text" placeholder="Write a comment…">
+        <button class="btn btn--primary" type="submit">Send</button>
+      </form>
+    </section>
+
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/profile.js"></script>
+</body>
+</html>

@@ -982,3 +982,88 @@ body{
   background:none;
 }
 }
+
+
+/* === ACCOUNT SETTINGS OVERLAY === */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  display: grid;
+  place-items: center;
+  z-index: 1600;
+}
+.auth-overlay[hidden]{ display:none !important; }
+
+.auth-modal {
+  width: min(640px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg,#101822 0%, #0f1923 100%);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.auth-modal__header,
+.auth-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg,#0d141e 0%, #0a1019 100%);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.auth-modal__footer {
+  border-top: 1px solid rgba(255,255,255,.06);
+  border-bottom: 0;
+  justify-content: flex-end;
+}
+
+.auth-modal__body {
+  padding: 14px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-close {
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--text);
+  width: 30px; height: 30px; border-radius: 8px;
+  cursor: pointer;
+}
+.auth-close:hover { background: rgba(102,192,244,.2); }
+
+.auth-form { display:flex; flex-direction:column; gap:12px; }
+.auth-field { display:flex; flex-direction:column; gap:6px; }
+.auth-field label { font-weight:700; font-size:13px; color: var(--muted); }
+.auth-field input {
+  background: linear-gradient(180deg,#172231,#121b26);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.auth-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(102,192,244,.22);
+}
+
+.auth-fieldset {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+.auth-fieldset legend { padding: 0 6px; color: var(--muted); font-weight: 700; }
+
+.auth-hint { font-size: 12px; color: var(--muted); }
+.auth-error { color: var(--danger); }
+.auth-success { color: var(--success); }
