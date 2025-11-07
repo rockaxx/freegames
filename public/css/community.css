@@ -194,6 +194,22 @@
   background: rgba(255,255,255,.08);
 }
 
+.remove-thread {
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent;
+  color:var(--text);
+  padding:6px 10px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:12px;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.remove-thread:hover{
+  background: rgba(255,255,255,.08);
+}
+
+
 /* clamp helper (keep existing) + un-clamp on expand */
 .clamp-3{
   display:-webkit-box;
@@ -565,4 +581,7 @@ body.filters-open .composer{ display:none !important; }
 .prose pre{
   padding:10px;border-radius:10px;overflow:auto;
   background:#0d141e;border:1px solid rgba(255,255,255,.08)
+}
+.adm-hidden {
+  display:none;
 }

@@ -72,41 +72,51 @@
         padding:16px;
       ">
         <h2 style="margin:0 0 12px; font-size:18px; font-weight:800; color:#fff;">Account Settings</h2>
+        <!-- tlačidlá -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn btn--ghost" id="btnChangeUsername">Change Username</button>
+        <button class="btn btn--ghost" id="btnChangeEmail">Change Email</button>
+        <button class="btn btn--ghost" id="btnChangePassword">Change Password</button>
+        </div>
 
-        <form id="settingsForm" class="auth-form" novalidate>
-          <div class="auth-hint" id="settingsMsg" aria-live="polite"></div>
-
-          <div class="auth-field">
-            <label for="setUsername">Username</label>
-            <input id="setUsername" type="text" autocomplete="username" required>
-          </div>
-
-          <div class="auth-field">
-            <label for="setEmail">Email</label>
-            <input id="setEmail" type="email" autocomplete="email" required>
-          </div>
-
-          <fieldset class="auth-fieldset">
-            <legend>Change Password (optional)</legend>
-            <div class="auth-field">
-              <label for="currPass">Current password</label>
-              <input id="currPass" type="password" autocomplete="current-password" placeholder="Required if changing password">
-            </div>
-            <div class="auth-field">
-              <label for="newPass">New password</label>
-              <input id="newPass" type="password" autocomplete="new-password">
-            </div>
-            <div class="auth-field">
-              <label for="newPass2">Confirm new password</label>
-              <input id="newPass2" type="password" autocomplete="new-password">
-            </div>
-          </fieldset>
-
-          <div class="auth-actions" style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
-            <button class="btn btn--ghost" id="authSettingsCancel" type="button">Reset</button>
-            <button class="btn btn--primary" id="authSettingsSave" type="submit">Save</button>
-          </div>
+        <!-- USERNAME -->
+        <form id="formUsername" class="auth-form" style="display:none">
+        <div class="auth-hint" id="msgUser"></div>
+        <div class="auth-field">
+            <label>New username</label>
+            <input id="inpNewUsername" type="text">
+        </div>
+        <button class="btn btn--primary" type="submit">Save</button>
         </form>
+
+        <!-- EMAIL -->
+        <form id="formEmail" class="auth-form" style="display:none">
+        <div class="auth-hint" id="msgEmail"></div>
+        <div class="auth-field">
+            <label>New email</label>
+            <input id="inpNewEmail" type="email">
+        </div>
+        <button class="btn btn--primary" type="submit">Save</button>
+        </form>
+
+        <!-- PASSWORD -->
+        <form id="formPassword" class="auth-form" style="display:none">
+        <div class="auth-hint" id="msgPass"></div>
+        <div class="auth-field">
+            <label>Current password</label>
+            <input id="inpCurr" type="password">
+        </div>
+        <div class="auth-field">
+            <label>New password</label>
+            <input id="inpNew" type="password">
+        </div>
+        <div class="auth-field">
+            <label>Confirm new password</label>
+            <input id="inpNew2" type="password">
+        </div>
+        <button class="btn btn--primary" type="submit">Save</button>
+        </form>
+
       </div>
     </section>
   </main>

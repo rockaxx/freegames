@@ -17,6 +17,19 @@ const els = {
   composerCancel: $('#composerCancel')
 };
 
+async function isRoleAdmin() {
+  try {
+    const r = await fetch('/api/profile/me', { credentials:'include' });
+    const j = await r.json();
+    if (!j.ok) return false;
+
+    return j.profile.role === 'admin';
+  } catch {
+    return false;
+  }
+}
+
+
 let state = {
   category: 'all',
   search: '',
@@ -99,6 +112,7 @@ function renderList() {
             : ''}
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
+            <button class="remove-thread ${isAdmin ? '' : 'adm-hidden'}">Remove thread</button>
             <button class="show-details">Show details</button>
             <a class="btn btn--ghost sm" href="/community/${t.id}" onclick="event.stopPropagation()">Open</a>
           </div>
@@ -237,3 +251,7 @@ els.composerForm.addEventListener('submit', async (e) => {
   await fetchMe();
   await loadThreads();
 })();
+document.addEventListener('DOMContentLoaded', async ()=>{
+  isAdmin = await isRoleAdmin();
+  applyAdminUI();
+});

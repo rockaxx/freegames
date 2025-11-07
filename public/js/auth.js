@@ -128,27 +128,48 @@
     bindLoggedOutEvents();
   }
 
-  function renderLogged(user) {
-    currentUser = user || currentUser;
-    const letter = (currentUser?.username || 'U').charAt(0).toUpperCase();
-    accBtn.textContent = letter;
+async function renderLogged(user) {
+  currentUser = user || currentUser;
+  const letter = (currentUser?.username || 'U').charAt(0).toUpperCase();
 
-    accBox.innerHTML = `
-      <div class="account-identity">
-        <div class="avatar avatar--sm">${letter}</div>
-        <div class="account-identity__meta">
-          <div class="acc-name">${escapeHtml(currentUser?.username || '')}</div>
-          <div class="acc-email">${escapeHtml(currentUser?.email || '')}</div>
-        </div>
-      </div>
-      <div class="account-actions">
-        <button id="settingsBtn" class="btn btn--ghost" style="width:100%;">Settings</button>
-        <button id="profileBtn" class="btn btn--ghost" style="width:100%;">Profile</button>
-        <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout</button>
-      </div>
-    `;
-    bindLoggedInEvents();
+  accBtn.textContent = letter;
+
+  let profileAvatar = null;
+  try {
+    const r = await fetch('/api/profile/me');
+    const j = await r.json();
+    if (j.ok && j.profile && j.profile.avatar) {
+      profileAvatar = j.profile.avatar;
+      accBtn.innerHTML = `<img src="${profileAvatar}" class="avatar-icon">`;
+    } else {
+      accBtn.textContent = letter;
+    }
+  } catch {
+    accBtn.textContent = letter;
   }
+
+  accBox.innerHTML = `
+    <div class="account-identity">
+      <div class="avatar avatar--sm">
+        ${profileAvatar ?
+          `<img src="${profileAvatar}" class="avatar-icon">`
+          : letter}
+      </div>
+      <div class="account-identity__meta">
+        <div class="acc-name">${escapeHtml(currentUser?.username || '')}</div>
+        <div class="acc-email">${escapeHtml(currentUser?.email || '')}</div>
+      </div>
+    </div>
+    <div class="account-actions" style="margin-top:7px;gap:7px; display:flex; flex-direction:column;">
+      <button id="settingsBtn" class="btn btn--ghost" style="width:100%;">Settings ⚙️</button>
+      <button id="profileBtn" class="btn btn--ghost" style="width:100%;">Profile 👤</button>
+      <button id="logoutBtn" class="btn btn--ghost" style="width:100%;">Logout 🛑</button>
+    </div>
+  `;
+
+  bindLoggedInEvents();
+}
+
 
   // ---------- Event binders ----------
   function bindDropdownToggles() {

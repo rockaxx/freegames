@@ -26,6 +26,7 @@ const TRUSTED_ITEMS = [
     uploaded: "2025-01-20",
     crackedBy: "K-D-A Team",
     imageUrl: "https://www.netlimiter.com/img/logo.png", // external URL
+    readme: true,
     //localImage: "/assets/downloads/netlimiter.jpg", // local image
     files: [
       { name: "netlimiter.7z", size: "8.2 MB" },

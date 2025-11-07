@@ -50,7 +50,7 @@ function renderProfile() {
 if (profile.extras && profile.extras.length > 0 && profile.extras[0].created_at) {
 els.created.textContent = 'Joined ' + new Date(profile.extras[0].created_at.replace(' ', 'T')).toLocaleDateString();
 } else {
-els.created.textContent = 'Joined dont know';
+els.created.textContent = 'Developer Test Account';
 }
   els.role.textContent = profile.role === 'admin' ? 'Admin' : 'Member';
   els.rep.textContent = (profile.repScore>=0?'+':'') + (profile.repScore||0);
@@ -212,9 +212,16 @@ async function init() {
     });
     const j = await r.json();
     if (j.ok && j.avatar) {
-      profile.avatar = j.avatar;
-      els.avatar.src = j.avatar;
+        profile.avatar = j.avatar;
+        els.avatar.src = j.avatar;
+
+        if (window.renderLogged) {
+            renderLogged();
+        }
+
+        window.location.reload();
     }
+
   };
 
   // Rep
