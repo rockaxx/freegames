@@ -1,9 +1,9 @@
 const cheerio = require("cheerio");
 const https = require("node:https");
 const { scrapeDetailAnker, scrapeDetail3rb, scrapeDetailRepackGames } = require('./scrape');
-const { scrapeRepackSearch  } = require('./scrapers/repackgames');
-const { scrapeSteamUndergroundSearch } = require('./scrapers/steamunderground');
-const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = require('./scrapers/onlinefix');
+const { scrapeRepackSearch  } = require('./repackgames');
+const { scrapeSteamUndergroundSearch } = require('./steamunderground');
+const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = require('./onlinefix');
 
 async function asyncPool(limit, array, iteratorFn) {
   const ret = [];

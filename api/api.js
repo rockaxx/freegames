@@ -6,13 +6,13 @@ const cheerio = require('cheerio');
 function req2(a, b) { try { return require(a); } catch { return require(b); } }
 
 // Reuse existing detail functions
-const { scrapeDetailAnker, scrapeDetail3rb } = require('./scrape');
-const { scrapeDetailRepackGames } = require('./scrapers/repackgames');
+const { scrapeDetailAnker, scrapeDetail3rb } = require('../scrapers/scrape');
+const { scrapeDetailRepackGames } = require('../scrapers/repackgames');
 
 // Listing/search helpers (root or scrapers fallback)
-const { streamRepackGames } = req2('./repackgames', './scrapers/repackgames');
-const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = req2('./onlinefix', './scrapers/onlinefix');
-const { streamSteamUnderground } = req2('./steamunderground', './scrapers/steamunderground');
+const { streamRepackGames } = req2('./repackgames', '../scrapers/repackgames');
+const { scrapeOnlineFixSearch, scrapeDetailOnlineFix } = req2('./onlinefix', '../scrapers/onlinefix');
+const { streamSteamUnderground } = req2('./steamunderground', '../scrapers/steamunderground');
 
 // Minimal fetch
 function fetchHtml(url) {

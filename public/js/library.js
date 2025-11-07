@@ -34,7 +34,7 @@ function createOFOverlayLib(ofMeta, preferImg) {
     if (ofMeta.item) {
       const cardImg = preferImg || ofMeta.item?.img || ofMeta.item?.poster || '';
       openModal({
-        ...ofMeta.item,
+        ...(ofMeta.item || {}),
         src: 'OnlineFix',
         img: cardImg,
         poster: cardImg
@@ -274,19 +274,41 @@ document.addEventListener('click', e => {
 });
 
 
-// ---------- render favourites ----------
-function renderFavs() {
+async function renderFavs() {
   const grid = document.getElementById('cardGrid');
-  const favs = fav_load();
   grid.innerHTML = '';
 
-  if (!favs.length) {
-    grid.innerHTML = '<div style="padding:20px;color:var(--muted)">No favourites yet. Right-click a game on Underground → “Add to favourites”.</div>';
+  let list = [];
+  let me = null;
+
+  try {
+    const r = await fetch('/api/me');
+    const j = await r.json();
+    me = j.ok ? j.user : null;
+  } catch {
+    me = null;
+  }
+
+  if (me) {
+    try {
+      const r = await fetch('/api/library');
+      const j = await r.json();
+      list = (j.ok && Array.isArray(j.items)) ? j.items : [];
+    } catch {
+      list = [];
+    }
+  } else {
+    list = fav_load(); // fallback to localStorage when logged out
+  }
+
+  if (!list.length) {
+    grid.innerHTML = '<div style="padding:20px;color:var(--muted)">No favourites yet.</div>';
     return;
   }
 
-  favs.forEach(g => {
+  list.forEach(g => {
     const img = normalizeImg(g.img || g.poster);
+
     const badgeClass =
       g.src === 'Anker' ? 'badge--good' :
       g.src === 'Game3RB' ? 'badge--warn' :
@@ -294,30 +316,23 @@ function renderFavs() {
       g.src === 'OnlineFix' ? 'badge--good' :
       g.src === 'SteamUnderground' ? 'badge--good' : 'badge--neutral';
 
-    // decide OF overlay source: persisted in favourite OR cached OFIndex in LS
     let ofMeta = null;
     if (g.of && (g.of.item || g.of.url)) ofMeta = g.of;
     else ofMeta = guessOFMatchFromLS(g.title, loadOFIndexLS());
 
     const overlay = ofMeta ? createOFOverlayLib(ofMeta, img) : null;
 
-    const thumb = el(
-      'div',
-      { class: 'card__thumb', style: img ? `background-image:url('${img}')` : '' },
-      overlay ? [overlay] : []
-    );
-
+    const thumb = el('div', { class:'card__thumb', style: img ? `background-image:url('${img}')` : '' }, overlay ? [overlay] : []);
     const card = el('article', {
       class: 'card',
       onclick: () => openModal(g),
       oncontextmenu: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         showCtx(e.clientX, e.clientY, [
-          { label: 'Open details', icon: '', kbd: '', onClick: () => openModal(g) },
-          g.href ? { label: 'Open source page', icon: '', onClick: () => window.open(g.href, '_blank', 'noopener') } : null,
+          { label: 'Open details', onClick: () => openModal(g) },
+          g.href ? { label: 'Open source page', onClick: () => window.open(g.href, '_blank', 'noopener')} : null,
           'sep',
-          { label: 'Remove from favourites', icon: '../assets/unfav.png', kbd: '', onClick: () => { fav_remove(g); renderFavs(); } },
+          { label: 'Remove from favourites', onClick: async () => { await fav_remove(g); renderFavs(); } },
         ]);
       }
     }, [
@@ -334,6 +349,7 @@ function renderFavs() {
     grid.append(card);
   });
 }
+
 
 const search = document.getElementById('searchInput');
 if (search) {

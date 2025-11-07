@@ -1,10 +1,10 @@
 const https = require('node:https');
 const { URL } = require('node:url');
 const cheerio = require('cheerio');
-const { scrapeDetailRepackGames, scrapeRepackList } = require('./scrapers/repackgames');
-const { scrapeDetailAnker, scrapeAnker } = require('./scrapers/anker');
-const { parseGame3rb, scrapeDetail3rb } = require('./scrapers/game3rb');
-const { fetchHtmlTor } = require('./scrapers/proxyFetch');
+const { scrapeDetailRepackGames, scrapeRepackList } = require('./repackgames');
+const { scrapeDetailAnker, scrapeAnker } = require('./anker');
+const { parseGame3rb, scrapeDetail3rb } = require('./game3rb');
+const { fetchHtmlTor } = require('./proxyFetch');
 
 // ------------------ MAIN SCRAPER ------------------
 async function scrape(url) {

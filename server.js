@@ -1,9 +1,9 @@
 // server.js
 const express = require('express');
 const path = require('path');
-const { scrape } = require('./scrape');
+const { scrape } = require('./scrapers/scrape');
 const { createUser, getUser } = require('./database/query');
-const { registerSearchStream } = require('./api');
+const { registerSearchStream } = require('./api/api');
 
 const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth'); // <<< NEW
 const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
@@ -29,7 +29,8 @@ app.use((req, _res, next) => {
 });
 
 registerSearchStream(app);
-app.use(require('./api_community'));
+app.use(require('./api/api_community'));
+app.use(require('./api/api_library'));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 // Attach req.user if valid cookie present

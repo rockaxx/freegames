@@ -2,12 +2,12 @@
 const express = require('express');
 const router = express.Router();
 
-const { ensureAuth } = require('./middleware/auth_middleware');
+const { ensureAuth } = require('../middleware/auth_middleware');
 const {
   createThread, listThreads, voteThread,
   createComment, listComments,
   repGame, getGameRep, getThreadById 
-} = require('./database/community_db');
+} = require('../database/community_db');
 
 router.get('/api/community/thread/:id', async (req,res)=>{
   try{

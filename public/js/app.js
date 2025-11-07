@@ -168,21 +168,60 @@ function fav_is(it) {
   return fav_load().some(x => fav_key(x) === key);
 }
 
-function fav_add(itRaw) {
+// Detect session once (cache)
+let __me = null;
+async function fetchSession() {
+  if (__me !== null) return __me;
+  try {
+    const r = await fetch('/api/me');
+    __me = await r.json();
+  } catch { __me = { ok:false }; }
+  return __me;
+}
+
+async function fav_add(itRaw) {
   const it = sanitizeGameForFav(itRaw);
-  const list = fav_load();
-  const key = fav_key(it);
-  if (!list.some(x => fav_key(x) === key)) {
-    list.push(it);
-    fav_save(list);
+  const me = await fetchSession();
+  if (me.ok) {
+    await fetch('/api/library/add', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ item: it })
+    });
+  } else {
+    const list = fav_load();
+    const key = fav_key(it);
+    if (!list.some(x => fav_key(x) === key)) {
+      list.push(it); fav_save(list);
+    }
   }
 }
 
-function fav_remove(it) {
+async function fav_remove(it) {
   const key = fav_key(it);
-  const list = fav_load().filter(x => fav_key(x) !== key);
-  fav_save(list);
+  const me = await fetchSession();
+  if (me.ok) {
+    await fetch('/api/library/' + encodeURIComponent(key), { method: 'DELETE' });
+  } else {
+    const list = fav_load().filter(x => fav_key(x) !== key);
+    fav_save(list);
+  }
 }
+(async function syncLocalFavsOnce(){
+  const me = await fetchSession();
+  if (!me.ok) return;
+  try {
+    const local = fav_load();
+    if (local && local.length) {
+      await fetch('/api/library/import', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ items: local })
+      });
+      // keep LS as cache; alebo vyčisti: fav_save([]);
+    }
+  } catch {}
+})();
 
 function sanitizeGameForFav(g) {
   // ensure we keep original image (avoid nested /api/img)

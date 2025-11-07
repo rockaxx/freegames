@@ -221,6 +221,101 @@ async function getThreadById(threadId, userId=null) {
 }
 
 
+// ===== Library (DB) =====
+
+// Key must match frontend's fav_key logic.
+function favKeyServer(it) {
+  const href = String(it.href || it.link || it.detail || '').toLowerCase();
+  const title = String(it.title || '').toLowerCase();
+  const src = String(it.src || '').toLowerCase();
+  return href || `${title}|${src}`;
+}
+
+async function initLibraryTables() {
+  await run(`CREATE TABLE IF NOT EXISTS library_items(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    payload TEXT NOT NULL,               -- JSON of sanitized favourite
+    created_at DATETIME NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, key)
+  )`);
+}
+
+async function listLibraryItems(userId) {
+  const rows = await all(
+    `SELECT key, payload, created_at FROM library_items WHERE user_id=? ORDER BY created_at DESC`,
+    [userId]
+  );
+  return rows.map(r => {
+    let obj = {};
+    try { obj = JSON.parse(r.payload); } catch {}
+    return { ...obj, __key: r.key, __created_at: r.created_at };
+  });
+}
+
+async function addLibraryItem(userId, item) {
+  const key = favKeyServer(item);
+  const payload = JSON.stringify(item);
+  await run(
+    `INSERT OR IGNORE INTO library_items(user_id,key,payload) VALUES(?,?,?)`,
+    [userId, key, payload]
+  );
+  // If already existed, refresh payload (optional)
+  await run(`UPDATE library_items SET payload=? WHERE user_id=? AND key=?`, [payload, userId, key]);
+  return { key };
+}
+
+async function removeLibraryItem(userId, key) {
+  await run(`DELETE FROM library_items WHERE user_id=? AND key=?`, [userId, key]);
+}
+
+async function toggleLibraryItem(userId, item) {
+  const key = favKeyServer(item);
+  const row = await get(`SELECT id FROM library_items WHERE user_id=? AND key=?`, [userId, key]);
+  if (row) {
+    await removeLibraryItem(userId, key);
+    return { inLibrary: false, key };
+  } else {
+    await addLibraryItem(userId, item);
+    return { inLibrary: true, key };
+  }
+}
+
+async function importLibraryItems(userId, items = []) {
+  for (const it of items) {
+    const key = favKeyServer(it);
+    await run(
+      `INSERT OR IGNORE INTO library_items(user_id,key,payload) VALUES(?,?,?)`,
+      [userId, key, JSON.stringify(it)]
+    );
+  }
+  return { imported: items.length };
+}
+
+// Hook library init into community init
+const _initCommunityTables_orig = initCommunityTables;
+initCommunityTables = async function patchedInitAll() {
+  await _initCommunityTables_orig();
+  await initLibraryTables();
+};
+
+module.exports = {
+  // existing exports...
+  initCommunityTables,
+  createThread, listThreads, voteThread,
+  createComment, listComments, repGame, getGameRep, getThreadById,
+
+  // library exports
+  listLibraryItems,
+  addLibraryItem,
+  removeLibraryItem,
+  toggleLibraryItem,
+  importLibraryItems,
+};
+
+
+
 module.exports = {
   initCommunityTables,
   createThread,
@@ -230,5 +325,10 @@ module.exports = {
   listComments,
   repGame,
   getGameRep,
-  getThreadById
+  getThreadById,
+  listLibraryItems,
+  addLibraryItem,
+  removeLibraryItem,
+  toggleLibraryItem,
+  importLibraryItems,
 };
