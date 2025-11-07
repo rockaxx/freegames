@@ -1,23 +1,13 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-
 const db = require('./database/db');
 const { scrape } = require('./scrapers/scrape');
 const {
   createUser,
   getUser,
-  getUserById,
-  usernameTaken,
-  emailTaken,
-  updateUserUsernameEmail,
-  updateUserPassword,
-  // whitelist helpers (not strictly needed here, but available if you want admin tools)
-  createWhitelistUser,
-  getWhitelistUser,
-  getPendingWhitelist,
-  approveWhitelistUser
 } = require('./database/query');
+
 
 const { registerSearchStream } = require('./api/api');
 const { ADMINS } = require('./config/admins');
