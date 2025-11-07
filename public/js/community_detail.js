@@ -35,21 +35,36 @@ async function loadThread() {
   renderThread();
   await loadComments();
 }
-
 function renderThread() {
+  document.title = `${thread.title} — Community`;
   els.title.textContent = thread.title;
-  els.meta.textContent = `${thread.category} • ${thread.author} • ${new Date(thread.created_at).toLocaleString()}`;
-  els.body.textContent = thread.body;
+
+  const cat = escapeHtml(thread.category || 'General');
+  const author = escapeHtml(thread.author || 'Unknown');
+  const source = thread.source ? `<span class="chip chip--source">${escapeHtml(thread.source)}</span>` : '';
+  const game = thread.game_title ? `<span class="chip chip--game">${escapeHtml(thread.game_title)}</span>` : '';
+
+  els.meta.innerHTML = `
+    <div class="chips">
+      <span class="chip chip--cat">${cat}</span>
+      ${game}
+      ${source}
+      <span class="chip chip--author"><span class="chip__avatar">${initial(author)}</span>${author}</span>
+      <span class="chip chip--time" title="${new Date(thread.created_at).toLocaleString()}">${timeAgo(thread.created_at)}</span>
+    </div>
+  `;
+
+  // pretty body: escape + linkify + newlines -> <br>
+  els.body.innerHTML = linkify(escapeHtml(thread.body || '')).replace(/\n/g, '<br>');
+
   els.voteScore.textContent = thread.score || 0;
 
-  // Mark and hard-disable vote buttons after first vote
   const hasVoted = thread.myVote === 1 || thread.myVote === -1;
   els.voteUp.disabled = hasVoted;
   els.voteDown.disabled = hasVoted;
   els.voteUp.classList.toggle('vote-btn--active', thread.myVote === 1);
   els.voteDown.classList.toggle('vote-btn--active', thread.myVote === -1);
 
-  // Game reputation: show and lock if already repped
   if (thread.game_title && thread.game_title.trim() !== '') {
     els.repWrap.hidden = false;
     els.repTitle.textContent = thread.game_title;
@@ -60,7 +75,6 @@ function renderThread() {
     const hasRepped = thread.myRep === 1 || thread.myRep === -1;
     els.repUp.disabled = hasRepped;
     els.repDown.disabled = hasRepped;
-
     els.repUp.onclick = () => rep(1);
     els.repDown.onclick = () => rep(-1);
   } else {
@@ -70,6 +84,34 @@ function renderThread() {
   els.voteUp.onclick = () => vote(1);
   els.voteDown.onclick = () => vote(-1);
 }
+
+// --- utils ---
+function initial(name='?'){ return (name.trim()[0] || '?').toUpperCase(); }
+function timeAgo(d){
+  const t = typeof d === 'string' ? new Date(d).getTime() : +d;
+  const s = Math.floor((Date.now() - t)/1000);
+  const m = Math.floor(s/60), h = Math.floor(m/60), dys = Math.floor(h/24);
+  if (s < 60) return `${s}s ago`;
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  return `${dys}d ago`;
+}
+function linkify(s){
+  return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// --- toolbar actions ---
+const copyBtn = document.getElementById('copyLink');
+copyBtn?.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(location.href); copyBtn.textContent = 'Copied'; setTimeout(()=>copyBtn.textContent='Copy link',1200); } catch {}
+});
+document.getElementById('goComments')?.addEventListener('click', () => {
+  document.getElementById('comments')?.scrollIntoView({behavior:'smooth'});
+});
+if (location.hash === '#comments'){
+  setTimeout(()=>document.getElementById('comments')?.scrollIntoView({behavior:'smooth'}), 120);
+}
+
 async function vote(delta) {
   if (!me) return alert('Login required');
   const r = await fetch('/api/community/vote', {

@@ -227,36 +227,108 @@
    - toolbar with filters
    - polished thread detail + comments
 =================================== */
+/* ===== Composer 2.0 (Spacious premium card) ===== */
+.composer{
+  margin-top:12px;
+  background: linear-gradient(180deg,#121e2b,#0f1923);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  padding:16px;
+  box-shadow: var(--shadow);
+}
 
-/* --- Pretty form controls (global within community) --- */
+.composer__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.composer__title h3{
+  margin:0;
+  font-size:18px;
+  font-weight:800;
+  color:#fff;
+}
+.composer__subtitle{
+  margin:2px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* Smooth collapse/expand */
+.composer__form{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transform: translateY(-4px);
+  transition: max-height .28s ease, opacity .22s ease, transform .22s ease;
+  display:grid;
+  gap:12px;
+}
+.composer.is-open .composer__form{
+  max-height:900px;
+  opacity:1;
+  transform: translateY(0);
+}
+
+/* Fields */
+.field{ display:flex; flex-direction:column; gap:6px; }
+.field label{
+  font-size:12px; color:var(--muted); letter-spacing:.2px;
+}
+.field .hint{
+  margin-top:6px; font-size:12px; color:var(--muted);
+}
+
+/* Inputs (override to be crisper) */
 .composer__form input,
 .composer__form select,
-.composer__form textarea,
-.comment-form input,
-.controls-inline select,
-.controls-inline input {
+.composer__form textarea{
   background: linear-gradient(180deg,#172231,#121b26);
   color: var(--text);
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.14);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
   transition: border .15s, box-shadow .15s, background .15s;
 }
-.composer__form input::placeholder,
-.composer__form textarea::placeholder,
-.comment-form input::placeholder {
-  color: rgba(255,255,255,.35);
-}
 .composer__form input:hover,
 .composer__form select:hover,
-.composer__form textarea:hover,
-.comment-form input:hover,
-.controls-inline select:hover { border-color: rgba(102,192,244,.25); }
+.composer__form textarea:hover{
+  border-color: rgba(102,192,244,.25);
+}
 .composer__form input:focus,
 .composer__form select:focus,
-.composer__form textarea:focus,
+.composer__form textarea:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(102,192,244,.22);
+}
+
+/* Grid for category | game | source */
+.composer__row{
+  display:grid;
+  grid-template-columns: 220px 1fr 280px;
+  gap:12px;
+}
+@media (max-width: 1000px){
+  .composer__row{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px){
+  .composer__row{ grid-template-columns: 1fr; }
+}
+
+/* Actions */
+.composer__actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+}
+
+/* Tighten hero description spacing slightly so card breathes */
+.hero p{ margin:0 0 10px; }
+
 .comment-form input:focus,
 .controls-inline select:focus {
   border-color: var(--accent);
@@ -452,4 +524,45 @@ body.filters-open .composer{ display:none !important; }
 .hr-ghost{
   height:1px; background:rgba(255,255,255,.06);
   border:none; margin:10px 0;
+}
+
+/* ===== Thread header + toolbar ===== */
+.thread-header{display:flex;flex-direction:column;gap:6px}
+.thread-toolbar{display:flex;gap:8px;margin-top:2px}
+
+/* ===== Chips / badges row ===== */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;
+  border:1px solid rgba(255,255,255,.12); color:var(--text);
+  background:linear-gradient(180deg,#122233,#0f1923);
+}
+.chip--cat{border-color:rgba(102,192,244,.35)}
+.chip--source{border-color:rgba(255,255,255,.18)}
+.chip--game{border-color:rgba(102,192,244,.25); color:#9be2ff}
+.chip--time{color:var(--muted)}
+.chip--author{color:#fff}
+.chip__avatar{
+  width:18px;height:18px;border-radius:50%;
+  display:grid;place-items:center;font-size:11px;font-weight:900;
+  background:linear-gradient(135deg,#263a50,#172738);
+  border:1px solid rgba(255,255,255,.18);
+}
+
+/* ===== Prose (pretty body formatting) ===== */
+.prose{line-height:1.75}
+.prose p{margin:0 0 10px}
+.prose a{color:var(--accent);text-decoration:none}
+.prose a:hover{color:var(--accent-2);text-decoration:underline}
+.prose ul,.prose ol{margin:8px 0 10px 20px}
+.prose li{margin:4px 0}
+.prose code{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:12px;padding:2px 6px;border-radius:6px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)
+}
+.prose pre{
+  padding:10px;border-radius:10px;overflow:auto;
+  background:#0d141e;border:1px solid rgba(255,255,255,.08)
 }

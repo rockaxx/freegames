@@ -58,6 +58,10 @@ async function loadThreads() {
   renderTop();
   renderRepBoard(data.topGames || []);
 }
+// Focus title after opening
+function focusTitleSoon() {
+  setTimeout(() => document.getElementById('threadTitle')?.focus(), 160);
+}
 
 function renderList() {
   if (!state.threads.length) {
@@ -178,16 +182,26 @@ const composerCancel= document.getElementById('composerCancel');
 // Always ensure form is not hard-hidden by attribute
 composerForm?.removeAttribute('hidden');
 
-// Open/close with CSS class (animated)
 composerToggle?.addEventListener('click', () => {
   const open = composer.classList.toggle('is-open');
   composerToggle.setAttribute('aria-expanded', String(open));
+  if (open) focusTitleSoon();
 });
+
 
 composerCancel?.addEventListener('click', () => {
   composer.classList.remove('is-open');
   composerToggle.setAttribute('aria-expanded', 'false');
   composerForm.reset();
+});
+['threadBody','threadTitle'].forEach(id => {
+  const el = document.getElementById(id);
+  el?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      els.composerForm?.dispatchEvent(new Event('submit', {cancelable:true, bubbles:true}));
+    }
+  });
 });
 
 // On successful submit, close composer the same way

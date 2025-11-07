@@ -105,35 +105,57 @@
         <h1>Community Board</h1>
         <p>Discuss games, mods, fixes. Vote on threads and +rep/−rep games.</p>
 
-        <!-- Collapsible composer -->
-        <div class="composer" id="composer">
-            <button id="composerToggle" class="btn btn--primary" type="button" aria-expanded="false">Create Thread</button>
-            Create Thread
-            </button>
-
-            <form id="threadForm" class="composer__form" autocomplete="off">
-            <input type="text" id="threadTitle" placeholder="Thread title" required>
-
-            <div class="composer__row">
-                <select id="threadCategory" required aria-label="Category">
-                <option value="games">Games</option>
-                <option value="tech">Tech</option>
-                <option value="mods">Mods</option>
-                <option value="offtopic">Off-topic</option>
-                </select>
-
-                <input type="text" id="gameTitle" placeholder="Game title (optional)" aria-label="Game title (optional)">
-                <input type="text" id="gameSource" placeholder="Source (e.g., OnlineFix)" aria-label="Source (optional)">
-            </div>
-
-            <textarea id="threadBody" rows="5" placeholder="Write your post..." required></textarea>
-
-            <div class="composer__actions">
-                <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
-                <button type="submit" class="btn btn--primary">Publish</button>
-            </div>
-            </form>
+    <div class="composer" id="composer">
+      <div class="composer__header">
+        <div class="composer__title">
+          <h3>Create a Thread</h3>
+          <p class="composer__subtitle">Share fixes, mods, questions, or rep a game.</p>
         </div>
+        <button id="composerToggle" class="btn btn--primary" type="button" aria-expanded="false">
+          Create Thread
+        </button>
+      </div>
+
+      <form id="threadForm" class="composer__form" autocomplete="off">
+        <div class="field">
+          <label for="threadTitle">Thread title</label>
+          <input type="text" id="threadTitle" placeholder="e.g., Online-Fix launcher won’t start on Windows 11" required>
+        </div>
+
+        <div class="composer__row">
+          <div class="field">
+            <label for="threadCategory">Category</label>
+            <select id="threadCategory" required aria-label="Category">
+              <option value="games">Games</option>
+              <option value="tech">Tech</option>
+              <option value="mods">Mods</option>
+              <option value="offtopic">Off-topic</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="gameTitle">Game title (optional)</label>
+            <input type="text" id="gameTitle" placeholder="Game title">
+          </div>
+
+          <div class="field">
+            <label for="gameSource">Source (optional)</label>
+            <input type="text" id="gameSource" placeholder="e.g., OnlineFix, FitGirl, Dodi">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="threadBody">Post</label>
+          <textarea id="threadBody" rows="6" placeholder="Write your post…"></textarea>
+          <div class="hint">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to publish</div>
+        </div>
+
+        <div class="composer__actions">
+          <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
+          <button type="submit" class="btn btn--primary">Publish</button>
+        </div>
+      </form>
+    </div>
 
         <!-- Toolbar: filters + sort -->
         <div class="controls-inline">
