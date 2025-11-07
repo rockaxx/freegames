@@ -4,7 +4,6 @@
   const API_UPDATE_URL = '/api/account/update'; // change if your backend uses a different path
 
   let originalUser = null;
-
   const qs = (id) => document.getElementById(id);
 
   function setMsg(text, cls = 'auth-hint') {
@@ -14,15 +13,22 @@
     box.textContent = text || '';
   }
 
-  // Inject inline settings form (no overlay)
-  function injectInlineForm() {
-    if (qs('settingsForm')) return; // already injected
+  // Parse JSON or plain text so we see server error messages
+  async function parseResponse(res) {
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      try { return { kind: 'json', body: await res.json() }; }
+      catch { return { kind: 'json', body: null }; }
+    }
+    try { return { kind: 'text', body: await res.text() }; }
+    catch { return { kind: 'text', body: null }; }
+  }
 
-    // hide old "Edit account" button if present
+  function injectInlineForm() {
+    if (qs('settingsForm')) return;
     const openBtn = qs('openSettingsOverlay');
     if (openBtn) openBtn.closest('.hero__actions')?.remove();
 
-    // place form AFTER the hero section
     const main = document.querySelector('main.content');
     const anchor = main?.querySelector('.hero');
 
@@ -75,12 +81,8 @@
       </section>
     `;
 
-    if (anchor && anchor.parentNode) {
-      anchor.insertAdjacentHTML('afterend', html);
-    } else {
-      // Fallback: append to main content
-      main?.insertAdjacentHTML('beforeend', html);
-    }
+    if (anchor && anchor.parentNode) anchor.insertAdjacentHTML('afterend', html);
+    else main?.insertAdjacentHTML('beforeend', html);
   }
 
   function prefillForm(user) {
@@ -112,28 +114,17 @@
     const newPass = qs('newPass').value;
     const newPass2 = qs('newPass2').value;
 
-    // basic validation
     if (!username || !email) {
       setMsg('Username and email are required.', 'auth-error');
       return;
     }
     const changingPass = !!(newPass || newPass2);
     if (changingPass) {
-      if (!currPass) {
-        setMsg('Enter your current password to change it.', 'auth-error');
-        return;
-      }
-      if (newPass !== newPass2) {
-        setMsg('New passwords do not match.', 'auth-error');
-        return;
-      }
-      if (newPass.length < 6) {
-        setMsg('New password should be at least 6 characters.', 'auth-error');
-        return;
-      }
+      if (!currPass) { setMsg('Enter your current password to change it.', 'auth-error'); return; }
+      if (newPass !== newPass2) { setMsg('New passwords do not match.', 'auth-error'); return; }
+      if (newPass.length < 6) { setMsg('New password should be at least 6 characters.', 'auth-error'); return; }
     }
 
-    // send
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Saving…';
@@ -141,10 +132,7 @@
 
     try {
       const payload = { username, email };
-      if (changingPass) {
-        payload.currPass = currPass;
-        payload.newPass = newPass;
-      }
+      if (changingPass) { payload.currPass = currPass; payload.newPass = newPass; }
 
       const r = await fetch(API_UPDATE_URL, {
         method: 'POST',
@@ -153,39 +141,46 @@
         body: JSON.stringify(payload)
       });
 
-      const out = await r.json().catch(() => ({}));
-      if (!r.ok || out?.ok === false) {
-        setMsg(out?.error || 'Update failed.', 'auth-error');
+      const parsed = await parseResponse(r);
+      const body = parsed.body;
+
+      // Determine failure
+      const serverError =
+        parsed.kind === 'json'
+          ? (body?.error || body?.message)
+          : (typeof body === 'string' && body.length < 500 ? body : null);
+
+      if (!r.ok || (parsed.kind === 'json' && body?.ok === false)) {
+        console.error('Account update failed', {
+          status: r.status,
+          statusText: r.statusText,
+          body
+        });
+        setMsg(serverError || `Update failed (HTTP ${r.status}).`, 'auth-error');
         btn.disabled = false;
         btn.textContent = originalText;
         return;
       }
 
+      // Success
       setMsg('Saved successfully.', 'auth-success');
+      const newUsername = (parsed.kind === 'json' ? body?.user?.username : null) || username;
+      const newEmail = (parsed.kind === 'json' ? body?.user?.email : null) || email;
 
-      // Prefer username/email returned from backend if present
-      const newUsername = out?.user?.username || username;
-      const newEmail = out?.user?.email || email;
-
-      // update sidebar profile link
       try {
         const link = qs('settingsProfileLink');
-        if (link && newUsername) {
-          link.href = '/profile/' + encodeURIComponent(newUsername);
-        }
+        if (link && newUsername) link.href = '/profile/' + encodeURIComponent(newUsername);
       } catch {}
 
-      // reset form + re-fill with canonical values
       form?.reset();
       qs('setUsername').value = newUsername;
       qs('setEmail').value = newEmail;
-
-      // keep a copy for Reset button
       originalUser = { username: newUsername, email: newEmail };
 
       btn.disabled = false;
       btn.textContent = originalText;
-    } catch {
+    } catch (e) {
+      console.error('Update request error', e);
       setMsg('Network error. Please try again.', 'auth-error');
       btn.disabled = false;
       btn.textContent = originalText;
@@ -193,13 +188,11 @@
   }
 
   function wireEvents() {
-    // Save (submit)
     qs('settingsForm')?.addEventListener('submit', (e) => {
       e.preventDefault();
       saveSettings();
     });
 
-    // Reset -> back to last known good values (/api/me or last save)
     qs('authSettingsCancel')?.addEventListener('click', (e) => {
       e.preventDefault();
       prefillForm(originalUser);
@@ -209,23 +202,17 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     injectInlineForm();
-
-    // load user and prefill
     const me = await fetchMe();
     if (!me) {
       setMsg('Please sign in to edit your settings.', 'auth-error');
-      // disable inputs if not logged in
-      ['setUsername', 'setEmail', 'currPass', 'newPass', 'newPass2', 'authSettingsSave'].forEach(id => {
-        const el = qs(id);
-        if (el) el.disabled = true;
+      ['setUsername','setEmail','currPass','newPass','newPass2','authSettingsSave'].forEach(id => {
+        const el = qs(id); if (el) el.disabled = true;
       });
       return;
     }
-
     originalUser = { username: me.username || '', email: me.email || '' };
     prefillForm(originalUser);
 
-    // update sidebar link immediately
     try {
       const link = qs('settingsProfileLink');
       if (link && me.username) link.href = '/profile/' + encodeURIComponent(me.username);

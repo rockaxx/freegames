@@ -4,36 +4,49 @@ const path = require('path');
 const { scrape } = require('./scrapers/scrape');
 const { createUser, getUser } = require('./database/query');
 const { registerSearchStream } = require('./api/api');
-
-const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth'); // <<< NEW
+const { ADMINS } = require('./config/admins');
+const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth');
 const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
-
 const { initCommunityTables } = require('./database/community_db');
 
 initCommunityTables().catch(err => console.error('DB init failed:', err));
 
 const app = express();
-
 const PORT = process.env.PORT || 4021;
-
 const IS_PROD = process.env.NODE_ENV === 'production';
+
 app.disable('x-powered-by');
 app.use(express.json());
 
+// ---- COMMON isAdmin check
+function isAdminUser(username, id) {
+  const wanted = ADMINS.get(String(username || '').toLowerCase());
+  return Number(wanted) === Number(id);
+}
+
+// ---- attach req.user (PRED routermi!)
+app.use((req, _res, next) => {
+  const cookies = parseCookies(req);
+  const tok = cookies.sid;
+  const payload = verifyToken(tok);
+  if (payload) {
+    req.user = {
+      id: payload.id,
+      username: payload.username,
+      email: payload.email,
+      role: isAdminUser(payload.username, payload.id) ? 'admin' : 'member'
+    };
+  }
+  next();
+});
+
 registerSearchStream(app);
+
+// routery až po tom, čo už máme req.user:
 app.use(require('./api/api_community'));
 app.use(require('./api/api_library'));
 app.use(require('./api/api_profile'));
 app.use(express.json({ limit: '5mb' }));
-
-const ADMINS = new Map();
-try {
-  const txt = fs.readFileSync(path.join(__dirname,'admins.config'),'utf8');
-  txt.split(/\r?\n/).forEach(line=>{
-    const [name,id] = line.split(':').map(s=>s.trim());
-    if(name && id) ADMINS.set(name.toLowerCase(), Number(id));
-  });
-} catch{}
 
 // Attach req.user if valid cookie present
 app.use((req, _res, next) => {

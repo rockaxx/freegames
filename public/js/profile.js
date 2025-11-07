@@ -7,6 +7,7 @@ const els = {
   changeAvatarBtn: document.getElementById('changeAvatarBtn'),
   username: document.getElementById('pUsername'),
   created: document.getElementById('pCreated'),
+  role: document.getElementById('pRole'),
   rep: document.getElementById('pRep'),
   repUp: document.getElementById('repUp'),
   repDown: document.getElementById('repDown'),
@@ -39,14 +40,19 @@ async function fetchMe() {
 }
 function qs(name){ const m = new URLSearchParams(location.search).get(name); return m ? m.trim() : ''; }
 
+function isRoleAdmin() {
+  return me && me.role === 'admin';
+}
+
+
 function renderProfile() {
   els.username.textContent = profile.username;
 if (profile.extras && profile.extras.length > 0 && profile.extras[0].created_at) {
-  els.created.textContent = 'Joined ' + new Date(profile.extras[0].created_at.replace(' ', 'T')).toLocaleDateString();
+els.created.textContent = 'Joined ' + new Date(profile.extras[0].created_at.replace(' ', 'T')).toLocaleDateString();
 } else {
-  els.created.textContent = 'Joined dont know';
+els.created.textContent = 'Joined dont know';
 }
-
+  els.role.textContent = profile.role === 'admin' ? 'Admin' : 'Member';
   els.rep.textContent = (profile.repScore>=0?'+':'') + (profile.repScore||0);
 
   els.avatar.src = profile.avatar || '/assets/user.png';
