@@ -26,7 +26,6 @@
       });
     }
   </script>
-
 </head>
 <body>
 
@@ -49,11 +48,16 @@
       <span class="brand__text">GAME.IT</span>
     </div>
 
+    <!-- Mobile burger -->
+    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <nav class="nav">
-      <button class="nav__link active" data-route="store" onclick="window.location='/';">Underground</button>
-      <button class="nav__link" data-route="library" onclick="window.location='/library';">Library</button>
-      <button class="nav__link" data-route="community" onclick="window.location='/community';">Community</button>
-      <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted';">Trusted ❤️</button>
+      <button class="nav__link active" data-route="store" onclick="window.location='/'">Underground</button>
+      <button class="nav__link" data-route="library" onclick="window.location='/library'">Library</button>
+      <button class="nav__link" data-route="community" onclick="window.location='/community'">Community</button>
+      <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
       <button class="nav__link" data-route="community" onclick="wllogout()">WL Logout</button>
     </nav>
   </div>
@@ -62,13 +66,16 @@
     <div class="search">
       <input id="searchInput" type="search" placeholder="Search games…">
     </div>
-  <!-- mount point for auth UI (JS will inject everything here) --> 
-  <div id="auth-root"></div>
+    <!-- mount point for auth UI (JS will inject everything here) -->
+    <div id="auth-root"></div>
+  </div>
 </header>
+
+<!-- Backdrop for mobile drawer -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
 
 <!-- layout -->
 <div class="layout">
-
   <aside class="sidebar">
     <div class="sidebar__section">
       <div class="sidebar__title">Navigation</div>
@@ -76,17 +83,13 @@
       <a class="sidebar__item" href="https://massgrave.dev/" target="_blank" rel="noopener noreferrer">Windows / Office Massgrave</a>
     </div>
   </aside>
+
   <main class="content">
     <section class="hero">
       <div class="hero__bg"></div>
       <div class="hero__content">
         <h1>This is the future of GAMING: GameIt!</h1>
         <p>Find a game of any genre from the browser of supported sites. But beware – at your <u>own risk</u>!</p>
-        <!--
-        <div class="hero__actions">
-          <button class="btn btn--primary">Add to cart</button>
-          <button class="btn btn--ghost">Add to wishlist</button>
-        </div>-->
       </div>
     </section>
 
@@ -104,20 +107,17 @@
         <div class="sort-controls" style="margin: 15px 0; display: flex; align-items: center; gap: 10px;">
           <label style="color: #fff;">Sort by:</label>
           <select id="sortSelect" style="padding: 8px; background: #1a1d29; color: #fff; border: 1px solid #2a2d3a; border-radius: 4px;">
-              <option value="default">Default</option>
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="source-asc">Source (A-Z)</option>
-              <option value="source-desc">Source (Z-A)</option>
+            <option value="default">Default</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="source-asc">Source (A-Z)</option>
+            <option value="source-desc">Source (Z-A)</option>
           </select>
         </div>
-        <!--<a class="shelf__more" href="#">View all</a>-->
       </div>
       <div class="cards" id="cardGrid"></div>
     </section>
   </main>
-
-
 </div>
 
 <!-- game modal -->
@@ -128,11 +128,39 @@
   </div>
 </div>
 
-
-
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
 
+<script>
+  (function () {
+    var btn = document.getElementById('mobileMenuBtn');
+    var sidebar = document.querySelector('.sidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
 
+    function openSidebar() {
+      if (!sidebar || !backdrop) return;
+      sidebar.classList.add('is-open');
+      backdrop.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      if (!sidebar || !backdrop) return;
+      sidebar.classList.remove('is-open');
+      backdrop.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    if (btn) btn.addEventListener('click', function () {
+      if (sidebar && sidebar.classList.contains('is-open')) closeSidebar();
+      else openSidebar();
+    });
+
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 900) closeSidebar();
+    });
+  })();
+</script>
 </body>
 </html>

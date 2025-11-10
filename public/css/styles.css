@@ -1076,3 +1076,66 @@ body{
 .auth-hint { font-size: 12px; color: var(--muted); }
 .auth-error { color: var(--danger); }
 .auth-success { color: var(--success); }
+
+.auth-fieldset legend { padding: 0 6px; color: var(--muted); font-weight: 700; }
+
+.auth-hint { font-size: 12px; color: var(--muted); }
+.auth-error { color: var(--danger); }
+.auth-success { color: var(--success); }
+
+/* ===== Mobile nav button (hidden on desktop) ===== */
+.burger{
+  display:none;
+  width:36px; height:32px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  background:rgba(255,255,255,.04);
+  cursor:pointer; padding:6px;
+  align-items:center; justify-content:center; gap:4px;
+}
+.burger span{
+  display:block; width:18px; height:2px; background:#c7d5e0; border-radius:2px;
+}
+
+/* ===== Backdrop for the off-canvas sidebar ===== */
+.sidebar-backdrop{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:1199;
+}
+
+/* ===== Mobile behavior ===== */
+@media (max-width: 900px){
+  /* show burger, hide big nav */
+  .burger{ display:inline-flex; }
+  .nav{ display:none; }
+
+  /* 1-column layout; full width for content */
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr;
+  }
+
+  /* turn sidebar into an off-canvas drawer */
+  .sidebar{
+    position:fixed;
+    top:56px;/* adjust if your topbar is taller */
+    left:0;
+    height:calc(100vh - 56px);
+    width:min(82vw, 320px);
+    transform:translateX(-100%);
+    transition:transform .2s ease;
+    z-index:1200;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .sidebar.is-open{ transform:translateX(0); }
+
+  /* tighter content padding on phones */
+  .content{ padding:12px; }
+}
+
+/* Optional: smaller search field on phones */
+@media (max-width: 900px){
+  .search input{ width:160px; }
+}
