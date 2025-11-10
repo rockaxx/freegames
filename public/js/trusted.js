@@ -29,8 +29,8 @@ const TRUSTED_ITEMS = [
     readme: true,
     //localImage: "/assets/downloads/netlimiter.jpg", // local image
     files: [
-      { name: "netlimiter.7z", size: "8.2 MB" },
-      { name: "netlimiter.zip", size: "8.6 MB" }
+      { name: "netlimiter.zip", size: "8.6 MB" },
+      { name: "netlimiter.7z", size: "8.2 MB" }
     ]
   },
   /*
