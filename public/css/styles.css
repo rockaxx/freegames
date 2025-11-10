@@ -1270,3 +1270,42 @@ body{
 @media (min-width: 961px){
   .mobile-nav{ display:none; }
 }
+/* === MOBILE TOPBAR REBUILD (brand + search v riadku, nav pod tým) === */
+@media (max-width: 720px){
+  .topbar{
+    /* prepíš predchádzajúci column layout */
+    display: grid !important;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "brand right right"
+      "nav   nav   nav";
+    row-gap: 8px;
+    padding: 8px 10px;
+    background: #0d1420;                 /* kompaktnejšie pozadie */
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    z-index: 1200;
+  }
+
+  /* sprav z detí .topbar__left priame grid items */
+  .topbar__left{ display: contents !important; }
+  .brand{ grid-area: brand; }
+  .topbar__right{ grid-area: right; display:flex; align-items:center; gap:8px; }
+  .nav{
+    grid-area: nav;
+    display:flex; gap:6px;
+    overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+    margin: 0; padding-bottom: 2px;
+  }
+  .nav::-webkit-scrollbar{ display:none; }
+
+  .brand__text{ display:none; }          /* logo iba ikonou na mobile */
+  .search{ width:100%; }
+  .search input{ width:100%; min-width:0; }
+
+  .nav__link{
+    flex:0 0 auto;
+    padding:8px 12px;
+    white-space:nowrap;
+    font-size:13px;
+  }
+}

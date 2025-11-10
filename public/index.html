@@ -137,37 +137,30 @@
 <script src="/js/auth.js"></script>
 
 <script>
-// Modal: close on backdrop click + ESC + keep body scroll locked
+// Sidebar drawer toggle (hamburger + scrim + ESC)
 (function(){
-  const modal = document.getElementById('gameModal');
-  const closeBtn = document.getElementById('modalClose');
-  if(!modal) return;
+  const body = document.body;
+  const btn = document.getElementById('menuBtn');
+  const scrim = document.getElementById('sidebarScrim');
+  const sidebar = document.querySelector('.sidebar');
+  if (!btn || !scrim || !sidebar) return;
 
-  function isOpen(){ return !modal.hasAttribute('hidden'); }
-  function closeModal(){
-    modal.hidden = true;
-    document.body.classList.remove('modal-open');
-  }
+  const open = () => {
+    body.classList.add('sidebar-open');
+    scrim.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+  };
+  const close = () => {
+    body.classList.remove('sidebar-open');
+    scrim.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  };
 
-  // Keď niekto klikne na "tmavé pozadie", zavri
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
-
-  // Tlačidlo ×
-  closeBtn && closeBtn.addEventListener('click', closeModal);
-
-  // ESC
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) closeModal();
-  });
-
-  // Sleduj zmeny hidden → nastav body class (scroll lock)
-  const mo = new MutationObserver(() => {
-    if (isOpen()) document.body.classList.add('modal-open');
-    else document.body.classList.remove('modal-open');
-  });
-  mo.observe(modal, { attributes:true, attributeFilter:['hidden'] });
+  btn.addEventListener('click', () =>
+    body.classList.contains('sidebar-open') ? close() : open()
+  );
+  scrim.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 })();
 </script>
 
