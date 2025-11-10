@@ -1,5 +1,7 @@
+// api_profile.js
 const express = require('express');
 const { ADMINS } = require('../config/admins');
+const db = require('../database/db'); // <-- needed for raw SQL
 const router = express.Router();
 const {
   getUserByName, getUserById, getProfileByUserId,
@@ -16,15 +18,38 @@ function requireUser(req, res, next){
 // helpers
 async function meUser(req){ return req.user ? req.user : null; }
 
-function requireUser(req, res, next){
-  if (!req.user) return res.status(401).json({ ok:false, error:'not logged in' });
-  next();
-}
-
 function isAdminUser(username, id) {
   const wanted = ADMINS.get(String(username || '').toLowerCase());
   return Number(wanted) === Number(id);
 }
+// on top already: const db = require('../database/db');
+
+router.get('/api/profile/search', async (req,res) => {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 2) return res.json({ ok:true, results:[] });
+
+    const sql = `
+      SELECT u.username, COALESCE(p.avatar, '') AS avatar
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE lower(u.username) LIKE ?
+      ORDER BY u.username
+      LIMIT 10
+    `;
+    db.all(sql, [ q + '%' ], (err, rows) => {
+      if (err) return res.status(500).json({ ok:false, error:'db-error' });
+      // normalize result
+      const results = (rows || []).map(r => ({
+        username: r.username,
+        avatar: r.avatar && r.avatar.trim() ? r.avatar : null
+      }));
+      res.json({ ok:true, results });
+    });
+  } catch {
+    res.status(500).json({ ok:false, error:'search-failed' });
+  }
+});
 
 router.get('/api/profile/me', requireUser, async (req,res)=>{
   const u = await getUserById(req.user.id);

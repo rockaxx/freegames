@@ -38,6 +38,29 @@
     </nav>
   </div>
   <div class="topbar__right">
+    <div class="search">
+    <input id="searchProfiles"
+          type="search"
+          placeholder="Search profiles.."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false" />
+      <div id="profileSuggest" style="
+        position:absolute;
+        top:100%;
+        left:0;
+        width:100%;
+        background:linear-gradient(180deg,#0f1923,#0a1019);
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:8px;
+        margin-top:6px;
+        z-index:2000;
+        display:none;
+        max-height:220px;
+        overflow:auto;
+      "></div>
+
+    </div>
     <div id="auth-root"></div>
   </div>
 </header>
@@ -49,9 +72,9 @@
 <aside class="sidebar" id="mobileDrawer">
   <nav class="mnav" aria-label="Mobile">
     <div class="mnav__section">
-      <a class="mnav__item" href="/">Games</a>
-      <a class="mnav__item" href="/settings">Settings</a>
-      <a class="mnav__item" id="mobileProfileLink" href="/profile">Profile</a>
+      <a class="mnav__item" href="/">Games 🎮</a>
+      <a class="mnav__item" href="/settings">Settings ⚙️</a>
+      <a class="mnav__item" id="mobileProfileLink" href="/profile">Profile 👤</a>
     </div>
   </nav>
 </aside>

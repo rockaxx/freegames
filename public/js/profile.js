@@ -48,11 +48,7 @@ function isRoleAdmin() {
 
 function renderProfile() {
   els.username.textContent = profile.username;
-if (profile.extras && profile.extras.length > 0 && profile.extras[0].created_at) {
-els.created.textContent = 'Joined ' + new Date(profile.extras[0].created_at.replace(' ', 'T')).toLocaleDateString();
-} else {
-els.created.textContent = 'Developer Test Account';
-}
+  els.created.textContent = '2025';
   els.role.textContent = profile.role === 'admin' ? 'Admin' : 'Member';
   els.rep.textContent = (profile.repScore>=0?'+':'') + (profile.repScore||0);
 
@@ -279,5 +275,135 @@ function fileToDataURL(file){
     fr.readAsDataURL(file);
   });
 }
+
+const searchInput = document.getElementById('searchProfiles');
+const suggestBox  = document.getElementById('profileSuggest');
+
+let lastValue = '';
+let activeIndex = -1;   // keyboard selection
+let currentItems = [];  // cached results
+
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+}
+
+function hideSuggest() {
+  suggestBox.style.display = 'none';
+  suggestBox.innerHTML = '';
+  activeIndex = -1;
+  currentItems = [];
+}
+
+function renderSuggest(items){
+  currentItems = items;
+  activeIndex = -1;
+
+  suggestBox.innerHTML = items.map((u, i) => `
+    <div class="suggest-item" data-u="${escHtml(u.username)}" data-idx="${i}" style="
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px; cursor:pointer;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:transparent;
+    ">
+      <img src="${u.avatar ? escHtml(u.avatar) : '/assets/user.png'}"
+           alt=""
+           width="28" height="28"
+           style="flex:0 0 28px; height:28px; border-radius:50%;
+                  border:1px solid rgba(255,255,255,.10);
+                  object-fit:cover; background:#172738;">
+      <span style="font-weight:700; color:var(--text)">${escHtml(u.username)}</span>
+    </div>
+  `).join('');
+
+  suggestBox.style.display = 'block';
+}
+
+function moveActive(delta){
+  if (!currentItems.length) return;
+  activeIndex = (activeIndex + delta + currentItems.length) % currentItems.length;
+
+  // visual state
+  [...suggestBox.querySelectorAll('.suggest-item')].forEach((el, idx) => {
+    el.style.background = idx === activeIndex ? 'rgba(102,192,244,.12)' : 'transparent';
+    el.style.outline = idx === activeIndex ? '1px solid rgba(102,192,244,.25)' : 'none';
+  });
+
+  // ensure visible
+  const el = suggestBox.querySelector(`.suggest-item[data-idx="${activeIndex}"]`);
+  if (el) el.scrollIntoView({ block:'nearest' });
+}
+
+function goActive(){
+  if (activeIndex < 0 || activeIndex >= currentItems.length) return;
+  const u = currentItems[activeIndex];
+  window.location.href = '/profile/' + encodeURIComponent(u.username);
+}
+
+searchInput.addEventListener('input', async () => {
+  const q = searchInput.value.trim();
+  if (!q || q.length < 2) return hideSuggest();
+  if (q === lastValue) return;
+  lastValue = q;
+
+  try {
+    const r = await fetch('/api/profile/search?q=' + encodeURIComponent(q));
+    const j = await r.json();
+    if (!j.ok || !Array.isArray(j.results) || !j.results.length) return hideSuggest();
+    renderSuggest(j.results);
+  } catch {
+    hideSuggest();
+  }
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    moveActive(+1);
+  }
+  else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveActive(-1);
+  }
+  else if (e.key === 'Enter') {
+
+    // 1) suggestions open + something selected -> goActive()
+    if (suggestBox.style.display === 'block' && currentItems.length && activeIndex >= 0) {
+      e.preventDefault();
+      goActive();
+      return;
+    }
+
+    // 2) suggestions open but no selection -> take raw text
+    if (suggestBox.style.display === 'block' && currentItems.length && activeIndex === -1) {
+      e.preventDefault();
+      const q = searchInput.value.trim();
+      if (q) window.location.href = '/profile/' + encodeURIComponent(q);
+      return;
+    }
+
+    // 3) no suggestions at all -> raw
+    const q = searchInput.value.trim();
+    if (q) {
+      e.preventDefault();
+      window.location.href = '/profile/' + encodeURIComponent(q);
+    }
+  }
+  else if (e.key === 'Escape') {
+    hideSuggest();
+  }
+});
+
+// click select
+suggestBox.addEventListener('click', (e) => {
+  const t = e.target.closest('.suggest-item');
+  if (!t) return;
+  window.location.href = '/profile/' + encodeURIComponent(t.dataset.u);
+});
+
+// close on outside click
+document.addEventListener('click', (e) => {
+  if (!suggestBox.contains(e.target) && !searchInput.contains(e.target)) hideSuggest();
+});
+
 
 document.addEventListener('DOMContentLoaded', init);
