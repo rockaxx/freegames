@@ -37,10 +37,17 @@
     <p>Loading games…</p>
   </div>
 </div>
+<nav class="mobile-nav" id="mbar">
+  <a href="/" class="is-active"><span class="icon">🏠</span><span>Home</span></a>
+  <a href="/community"><span class="icon">💬</span><span>Community</span></a>
+  <a href="/trusted"><span class="icon">⬇️</span><span>Trusted</span></a>
+  <a href="/settings"><span class="icon">⚙️</span><span>Settings</span></a>
+</nav>
 
 <!-- topbar -->
 <header class="topbar">
   <div class="topbar__left">
+    <button class="hamburger" id="menuBtn" aria-label="Menu" aria-expanded="false"><span></span></button>
     <div class="brand">
       <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
@@ -70,6 +77,7 @@
 <div class="layout">
 
   <aside class="sidebar">
+    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
     <div class="sidebar__section">
       <div class="sidebar__title">Navigation</div>
       <a class="sidebar__item active" href="/">Games</a>
@@ -133,6 +141,35 @@
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
 
+<script>
+/* Drawer toggling: no dependency */
+(function(){
+  const body = document.body;
+  const btn = document.getElementById('menuBtn');
+  const scrim = document.getElementById('sidebarScrim');
+  const sidebar = document.querySelector('.sidebar');
+
+  if (!btn || !scrim || !sidebar) return;
+
+  function openDrawer(){
+    body.classList.add('sidebar-open');
+    scrim.hidden = false;
+    btn.setAttribute('aria-expanded','true');
+  }
+  function closeDrawer(){
+    body.classList.remove('sidebar-open');
+    scrim.hidden = true;
+    btn.setAttribute('aria-expanded','false');
+  }
+  btn.addEventListener('click', () => {
+    if (body.classList.contains('sidebar-open')) closeDrawer();
+    else openDrawer();
+  });
+  scrim.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+  sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+})();
+</script>
 
 </body>
 </html>

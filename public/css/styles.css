@@ -1076,3 +1076,167 @@ body{
 .auth-hint { font-size: 12px; color: var(--muted); }
 .auth-error { color: var(--danger); }
 .auth-success { color: var(--success); }
+
+/* =========================================
+   MOBILE OVERHAUL — drawer, sticky nav, grids
+   (append to end of styles.css)
+   ========================================= */
+
+/* Baseline touch targets + typography */
+:root{
+  --tap: 44px;                  /* min tap size */
+  --mbar-h: 60px;               /* mobile bottom bar height */
+}
+
+/* Respect phone notches */
+@supports(padding:max(0px)) {
+  body { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+}
+
+/* Topbar: compact on small screens */
+@media (max-width: 960px){
+  .topbar { padding: 10px 12px; }
+  .brand__text { display:none; }                  /* keep icon only */
+  .search input { width: 100%; min-width: 0; }    /* full-width search */
+  .nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .nav::-webkit-scrollbar{ display:none; }
+  .nav__link { white-space: nowrap; padding: 8px 12px; }
+}
+
+/* Layout → single column on mobile; sidebar becomes drawer */
+@media (max-width: 960px){
+  .layout {
+    grid-template-columns: 1fr;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* Drawer */
+  .sidebar{
+    position: fixed;
+    z-index: 1100;
+    top: 0; bottom: 0; left: 0;
+    width: min(78vw, 340px);
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    will-change: transform;
+    overflow-y: auto;
+  }
+  body.sidebar-open .sidebar{ transform: translateX(0); }
+
+  /* Scrim (click to close) */
+  .sidebar-scrim{
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(2px);
+  }
+
+  /* Prevent body scroll when drawer is open */
+  body.sidebar-open { overflow: hidden; }
+}
+
+/* Hamburger button (place in .topbar__left) */
+.hamburger{
+  display: none;
+}
+@media (max-width: 960px){
+  .hamburger{
+    display:inline-grid; place-items:center;
+    width: var(--tap); height: var(--tap);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
+    cursor: pointer;
+  }
+  .hamburger span,
+  .hamburger::before,
+  .hamburger::after{
+    content: "";
+    display:block;
+    width: 22px; height: 2px;
+    background: #c7d5e0;
+    border-radius: 2px;
+  }
+  .hamburger span{ margin: 4px 0; }
+}
+
+/* Content spacing: avoid overlap with mobile bottom bar */
+@media (max-width: 960px){
+  .content{
+    padding: 14px;
+    padding-bottom: calc(14px + var(--mbar-h) + max(0px, env(safe-area-inset-bottom)));
+  }
+}
+
+/* Cards: tighter columns on phones */
+@media (max-width: 960px){
+  .cards{
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+  }
+}
+@media (max-width: 520px){
+  .cards{ grid-template-columns: 1fr; }
+  .card__thumb{ aspect-ratio: 16/9; }
+}
+
+/* Buttons: ensure comfortable tap area */
+.btn, .nav__link, .sidebar__item, .download-btn {
+  min-height: var(--tap);
+}
+
+/* Account dropdown: keep inside viewport on phones */
+@media (max-width: 520px){
+  .account-box{
+    right: 8px;
+    width: min(92vw, 320px);
+  }
+}
+
+/* Modal: near-fullscreen on phones + sticky actions */
+@media (max-width: 720px){
+  .modal__dialog{
+    width: 96vw;
+    max-height: 96vh;
+    border-radius: 12px;
+  }
+  .modal__buttons{
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg,#0d141e 0%,#0a1019 100%);
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ===== Optional: Mobile bottom tabbar (if you add the markup) ===== */
+.mobile-nav{
+  position: fixed;
+  z-index: 1050;
+  left: 0; right: 0; bottom: 0;
+  height: var(--mbar-h);
+  display: none;
+  align-items: center; justify-content: space-around;
+  background: linear-gradient(180deg,#0b1220,#0e1624);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 0 max(8px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+}
+.mobile-nav a{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap: 4px; text-decoration: none; color: var(--muted); font-size: 11px; font-weight: 700;
+}
+.mobile-nav a.is-active{ color:#fff; }
+.mobile-nav .icon{ width: 18px; height: 18px; }
+
+@media (max-width: 960px){
+  .mobile-nav{ display:flex; }
+}
+@media (min-width: 961px){
+  .mobile-nav{ display:none; }
+}
