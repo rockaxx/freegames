@@ -10,9 +10,23 @@ const {
 
 const { spawn } = require('child_process');
 
-const tor = spawn('tor', ['--SocksPort','9050','--ControlPort','9051'], {
-  stdio: 'inherit'
-});
+if (process.platform === 'linux') {
+  // linux
+  const tor = spawn('tor', ['--SocksPort','9050','--ControlPort','9051'], {
+    stdio: 'inherit'
+  });
+} else if (process.platform === 'win32') {
+  // windows
+  const tor = spawn('tor.exe', ['--SocksPort','9050','--ControlPort','9051'], {
+    stdio: 'inherit'
+  });
+}
+else if (process.platform === 'win64') {
+  // windows
+  const tor = spawn('tor.exe', ['--SocksPort','9050','--ControlPort','9051'], {
+    stdio: 'inherit'
+  });
+}
 
 const { registerSearchStream } = require('./api/api');
 const { ADMINS } = require('./config/admins');
