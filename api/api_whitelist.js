@@ -102,7 +102,15 @@ router.post('/login', async (req, res) => {
 
     const user = await getWhitelistUser(sanitizeUsername(username));
     if (!user) return res.status(401).json({ ok: false, error: 'invalid' });
+
+    const autoList = loadWhitelistUsernames();
+    if (!user.allowed && autoList.includes(user.username)) {
+      await approveWhitelistUser(user.id);
+      user.allowed = 1;
+    }
+
     if (!user.allowed) return res.status(403).json({ ok: false, error: 'not-approved' });
+
 
     const [saltHex, hashHex] = String(user.password).split(':');
     const salt = Buffer.from(saltHex, 'hex');
