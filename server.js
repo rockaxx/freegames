@@ -8,6 +8,11 @@ const {
   getUser,
 } = require('./database/query');
 
+const { spawn } = require('child_process');
+
+const tor = spawn('tor', ['--SocksPort','9050','--ControlPort','9051'], {
+  stdio: 'inherit'
+});
 
 const { registerSearchStream } = require('./api/api');
 const { ADMINS } = require('./config/admins');
