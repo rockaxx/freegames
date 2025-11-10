@@ -389,6 +389,6 @@ app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', 'error.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`[steam-like-template] running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`[GameIT] running on 0.0.0.0:${PORT}`);
 });
