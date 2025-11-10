@@ -1128,14 +1128,44 @@ body{
   }
   body.sidebar-open .sidebar{ transform: translateX(0); }
 
-  /* Scrim (click to close) */
+  /* ===== Sidebar scrim: menej agresívny, nebluruj sidebar ===== */
   .sidebar-scrim{
     position: fixed;
     inset: 0;
-    z-index: 1090;
-    background: rgba(0,0,0,.55);
-    backdrop-filter: blur(2px);
+    z-index: 1080;               /* sidebar má 1100 → scrim je pod ním */
+    background: rgba(0,0,0,.55); /* tmavý závoj */
+    backdrop-filter: none;       /* ZRUŠ blur, nech nie je "rozmazaný sidebar" */
   }
+  .sidebar[style]{ filter:none !important; } /* poistka proti nechceným filtráciám */
+
+  /* ===== Mobile topbar reflow (čitateľný a čistý) ===== */
+  @media (max-width: 720px){
+    .topbar{ padding:8px 10px; flex-direction: column; align-items: stretch; gap:8px; }
+    .topbar__left{ flex-direction: column; align-items: stretch; gap:8px; }
+    .brand__text{ display:none; }                    /* nechaj iba ikonu */
+    .nav{
+      order:2;
+      display:flex; gap:6px;
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      scrollbar-width:none; margin:0 -4px; padding:0 4px;
+    }
+    .nav::-webkit-scrollbar{ display:none; }
+    .nav__link{ flex:0 0 auto; padding:8px 12px; white-space:nowrap; }
+    .topbar__right{ width:100%; }                    /* search na plnú šírku */
+    .search input{ width:100%; min-width:0; }
+  }
+
+  /* Tap targety konzistentné aj na mobile */
+  .btn, .nav__link, .sidebar__item{ min-height:44px; }
+
+  /* ===== Modal: zákaz scrollu pozadia pri otvorení ===== */
+  body.modal-open{ overflow:hidden; }
+
+  /* Vylepšené klikateľné pozadie modalu (nič neruší) */
+  .modal{
+    background: rgba(0,0,0,.72); /* o chlp tmavšie, ale bez blur na obsah */
+  }
+
 
   /* Prevent body scroll when drawer is open */
   body.sidebar-open { overflow: hidden; }

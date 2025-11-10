@@ -37,12 +37,6 @@
     <p>Loading games…</p>
   </div>
 </div>
-<nav class="mobile-nav" id="mbar">
-  <a href="/" class="is-active"><span class="icon">🏠</span><span>Home</span></a>
-  <a href="/community"><span class="icon">💬</span><span>Community</span></a>
-  <a href="/trusted"><span class="icon">⬇️</span><span>Trusted</span></a>
-  <a href="/settings"><span class="icon">⚙️</span><span>Settings</span></a>
-</nav>
 
 <!-- topbar -->
 <header class="topbar">
@@ -77,13 +71,14 @@
 <div class="layout">
 
   <aside class="sidebar">
-    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
     <div class="sidebar__section">
       <div class="sidebar__title">Navigation</div>
       <a class="sidebar__item active" href="/">Games</a>
       <a class="sidebar__item" href="https://massgrave.dev/" target="_blank" rel="noopener noreferrer">Windows / Office Massgrave</a>
     </div>
   </aside>
+  <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+
   <main class="content">
     <section class="hero">
       <div class="hero__bg"></div>
@@ -142,34 +137,40 @@
 <script src="/js/auth.js"></script>
 
 <script>
-/* Drawer toggling: no dependency */
+// Modal: close on backdrop click + ESC + keep body scroll locked
 (function(){
-  const body = document.body;
-  const btn = document.getElementById('menuBtn');
-  const scrim = document.getElementById('sidebarScrim');
-  const sidebar = document.querySelector('.sidebar');
+  const modal = document.getElementById('gameModal');
+  const closeBtn = document.getElementById('modalClose');
+  if(!modal) return;
 
-  if (!btn || !scrim || !sidebar) return;
+  function isOpen(){ return !modal.hasAttribute('hidden'); }
+  function closeModal(){
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
 
-  function openDrawer(){
-    body.classList.add('sidebar-open');
-    scrim.hidden = false;
-    btn.setAttribute('aria-expanded','true');
-  }
-  function closeDrawer(){
-    body.classList.remove('sidebar-open');
-    scrim.hidden = true;
-    btn.setAttribute('aria-expanded','false');
-  }
-  btn.addEventListener('click', () => {
-    if (body.classList.contains('sidebar-open')) closeDrawer();
-    else openDrawer();
+  // Keď niekto klikne na "tmavé pozadie", zavri
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
   });
-  scrim.addEventListener('click', closeDrawer);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
-  sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+
+  // Tlačidlo ×
+  closeBtn && closeBtn.addEventListener('click', closeModal);
+
+  // ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) closeModal();
+  });
+
+  // Sleduj zmeny hidden → nastav body class (scroll lock)
+  const mo = new MutationObserver(() => {
+    if (isOpen()) document.body.classList.add('modal-open');
+    else document.body.classList.remove('modal-open');
+  });
+  mo.observe(modal, { attributes:true, attributeFilter:['hidden'] });
 })();
 </script>
+
 
 </body>
 </html>
