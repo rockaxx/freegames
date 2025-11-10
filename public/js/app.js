@@ -348,18 +348,6 @@ function showCardMenu(ev, game) {
   }
   ctx_create(ev.clientX, ev.clientY, menu);
 }
-function attachLongPressForCard(card, game) {
-  let pressTimer = null;
-
-  card.addEventListener('touchstart', (e) => {
-    pressTimer = setTimeout(() => {
-      showCardMenu(e.changedTouches[0], game);
-    }, 450);
-  });
-
-  card.addEventListener('touchend', () => clearTimeout(pressTimer));
-  card.addEventListener('touchmove', () => clearTimeout(pressTimer));
-}
 
 // ===== ONLINE-FIX INDEXING =====
 function shortVersion(v) {
@@ -719,9 +707,6 @@ function appendCards(list = []) {
       ])
     ]);
 
-
-    attachLongPressForCard(card, g);
-
     const sk = grid.querySelector('.card.skeleton');
     if (sk) sk.replaceWith(card);
     else grid.append(card);
@@ -807,7 +792,7 @@ function renderCards(list = games) {
   });
 }
 
-// ===== MODAL =====
+
 function openModal(game) {
   if (!game.img && game.poster) game.img = game.poster;
   if (!game.tags && game.genres) game.tags = game.genres;
@@ -828,7 +813,31 @@ function openModal(game) {
   // INFO BLOCK
   const info = [];
 
-  info.push(el('h2', { class: 'modal__title' }, game.title || '???'));
+  // --- header with title + fav button ---
+  const titleEl = el('h2', { class: 'modal__title' }, (game.title || '???'));
+
+  let fav = !!fav_is(game);
+  const favBtn = el('button', {
+    type: 'button',
+    class: 'btn btn--fav',
+    onclick: (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (fav) { fav_remove(game); fav = false; } else { fav_add(game); fav = true; }
+      updateFavBtn();
+    }
+  }, '');
+
+  function updateFavBtn() {
+    favBtn.textContent = fav ? 'Remove from favourites' : 'Add to favourites';
+    favBtn.classList.toggle('is-active', fav);
+  }
+  updateFavBtn();
+
+  const headerRow = el('div', { class: 'modal__header' }, [ titleEl, favBtn ]);
+  info.push(headerRow);
+  // --- end header ---
+
   if (game.subtitle) info.push(el('p', { class: 'modal__subtitle' }, game.subtitle));
   if (game.tags?.length) info.push(el('p', { class: 'modal__tags' }, game.tags.join(', ')));
 
@@ -850,10 +859,8 @@ function openModal(game) {
   if (game.href)
     info.push(el('p', {}, el('a', { href: game.href, target: '_blank', rel: 'noopener' }, 'Open detail')));
 
-  if (game.desc)
-    info.push(el('p', { style: 'margin-top:10px;' }, game.desc));
-  if (game.about)
-    info.push(el('p', { style: 'margin-top:10px;' }, game.about));
+  if (game.desc)  info.push(el('p', { style: 'margin-top:10px;' }, game.desc));
+  if (game.about) info.push(el('p', { style: 'margin-top:10px;' }, game.about));
 
   // SPECIAL: Game3RB
   if (game.src === 'Game3RB') {
@@ -870,7 +877,7 @@ function openModal(game) {
     }
   }
 
-  // Generic trailer if source doesn't have its own trailer block
+  // Trailer (generic)
   const sourceHasOwnTrailer = (game.src === 'RepackGames' || game.src === 'OnlineFix');
   if (!sourceHasOwnTrailer && game.trailer) {
     if (/youtube|youtu\.be/.test(game.trailer)) {
@@ -889,7 +896,7 @@ function openModal(game) {
     }
   }
 
-  // Generic downloads if source doesn't have its own section
+  // Generic downloads
   const hasOwnDownloadSection = (game.src === 'RepackGames' || game.src === 'OnlineFix');
   if (!hasOwnDownloadSection && Array.isArray(game.downloadLinks)) {
     const validLinks = game.downloadLinks.filter(x => x && x.link && typeof x.link === 'string');
@@ -918,7 +925,6 @@ function openModal(game) {
         )
       );
     }
-
     if (game.trailer && game.trailer.includes('youtube')) {
       info.push(
         el('iframe', {
@@ -929,7 +935,6 @@ function openModal(game) {
         })
       );
     }
-
     if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
       const links = game.downloadLinks.map(dl =>
         el('a', {
@@ -937,7 +942,7 @@ function openModal(game) {
           target: '_blank',
           rel: 'noopener',
           class: 'modal__download'
-        }, ("Download from: "+(dl.label || new URL(dl.link).hostname)))
+        }, 'Download from: ' + (dl.label || new URL(dl.link).hostname))
       );
       info.push(el('div', { class: 'modal__links' }, links));
     }
@@ -945,12 +950,8 @@ function openModal(game) {
 
   // SPECIAL: OnlineFix
   if (game.src === 'OnlineFix') {
-    if (game.version) {
-      info.push(el('p', { class: 'modal__version' }, `Version: ${game.version}`));
-    }
-    if (game.build) {
-      info.push(el('p', { class: 'modal__build' }, `Build: ${game.build}`));
-    }
+    if (game.version) info.push(el('p', { class: 'modal__version' }, `Version: ${game.version}`));
+    if (game.build)   info.push(el('p', { class: 'modal__build'   }, `Build: ${game.build}`));
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
@@ -972,7 +973,6 @@ function openModal(game) {
         })
       );
     }
-
     if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
       const links = game.downloadLinks.map(dl =>
         el('a', {
@@ -992,6 +992,7 @@ function openModal(game) {
   );
   modal.hidden = false;
 }
+
 
 // ===== UI EVENTS =====
 function attachEvents(){

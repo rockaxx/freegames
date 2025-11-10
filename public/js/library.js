@@ -101,9 +101,8 @@ function normalizeImg(u) {
   if (/^\/api\/img\?url=/.test(u)) return u; // already proxied
   try { return '/api/img?url=' + encodeURIComponent(u); } catch { return u; }
 }
-
 // ---------- modal ----------
-function openModal(g) {
+function openModal(g, cardEl) { // pass cardEl from caller
   const modal = document.getElementById('gameModal');
   const body = document.getElementById('modalBody');
   body.innerHTML = '';
@@ -114,7 +113,24 @@ function openModal(g) {
   });
 
   const info = [];
-  info.push(el('h2', { class: 'modal__title' }, g.title || 'Unknown'));
+
+  // header: title + remove button (wraps on mobile)
+  const titleEl = el('h2', { class: 'modal__title' }, g.title || 'Unknown');
+
+  const removeBtn = el('button', {
+    type: 'button',
+    class: 'btn btn--fav', // reuse style if you have; or keep as separate class
+    onclick: async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await removeFavSmart(g, cardEl);
+      modal.hidden = true; // close modal after removal
+    }
+  }, 'Remove from favourites');
+
+  const headerRow = el('div', { class: 'modal__header' }, [ titleEl, removeBtn ]);
+  info.push(headerRow);
+
   if (Array.isArray(g.tags) && g.tags.length) info.push(el('p', { class: 'modal__tags' }, g.tags.join(', ')));
 
   const fields = [
@@ -150,6 +166,7 @@ function openModal(g) {
   body.append(cover, el('div', { class: 'modal__info' }, info));
   modal.hidden = false;
 }
+
 document.getElementById('modalClose').addEventListener('click', () => {
   document.getElementById('gameModal').hidden = true;
 });
@@ -324,7 +341,7 @@ async function renderFavs() {
     const thumb = el('div', { class:'card__thumb', style: img ? `background-image:url('${img}')` : '' }, overlay ? [overlay] : []);
     const card = el('article', {
       class: 'card',
-      onclick: () => openModal(g),
+      onclick: () => openModal(g,card),
       oncontextmenu: (e) => {
         e.preventDefault(); e.stopPropagation();
         showCtx(e.clientX, e.clientY, [
