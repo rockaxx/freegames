@@ -1,166 +1,290 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GAME.IT</title>
-  <link rel="icon" href="/assets/favicon.svg">
-  <link rel="stylesheet" href="/css/styles.css">
-  <script>
-    function wllogout() {
-      fetch('/api/whitelist/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          window.location.reload();
-        } else {
-          alert('whitelist logout fail: ' + (data.error || 'unknown'));
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GAME.IT</title>
+    <link rel="icon" href="/assets/favicon.svg" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script>
+      function wllogout() {
+        fetch("/api/whitelist/logout", {
+          method: "POST",
+          credentials: "include",
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.ok) {
+              window.location.reload();
+            } else {
+              alert("whitelist logout fail: " + (data.error || "unknown"));
+            }
+          })
+          .catch((err) => {
+            console.error("logout err:", err);
+            alert("logout JS error");
+          });
+      }
+    </script>
+  </head>
+
+  <body class="no-sidebar-desktop">
+    <!-- topbar -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="brand">
+          <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
+            <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
+          </svg>
+          <span class="brand__text">GAME.IT</span>
+        </div>
+
+        <!-- Mobile burger -->
+        <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+
+        <nav class="nav">
+          <button
+            class="nav__link active"
+            data-route="store"
+            onclick="window.location='/'"
+          >
+            Underground
+          </button>
+          <button
+            class="nav__link"
+            data-route="library"
+            onclick="window.location='/library'"
+          >
+            Library
+          </button>
+          <button
+            class="nav__link"
+            data-route="community"
+            onclick="window.location='/community'"
+          >
+            Community
+          </button>
+          <button
+            class="nav__link trusted"
+            data-route="trusted"
+            onclick="window.location='/trusted'"
+          >
+            Trusted ❤️
+          </button>
+          <button class="nav__link" data-route="community" onclick="wllogout()">
+            WL Logout
+          </button>
+        </nav>
+      </div>
+
+      <div class="topbar__right">
+        <div class="search">
+          <input id="searchInput" type="search" placeholder="Search games…" />
+        </div>
+        <!-- mount point for auth UI (JS will inject everything here) -->
+        <div id="auth-root"></div>
+      </div>
+    </header>
+
+    <!-- Backdrop for mobile drawer -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+    <!-- layout -->
+    <div class="layout">
+      <aside class="sidebar" id="mobileDrawer">
+        <nav class="mnav" aria-label="Main">
+          <div class="mnav__section">
+            <div class="mnav__title">Menu</div>
+            <a class="mnav__item" href="/">Games</a>
+            <a class="mnav__item" href="/library">Library</a>
+            <a class="mnav__item" href="/community">Community</a>
+            <a class="mnav__item" href="/trusted">Trusted ❤️</a>
+            <button id="mnav-logout" class="mnav__item mnav__btn" type="button">
+              Whitelist logout
+            </button>
+          </div>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <div class="hero__bg"></div>
+          <div class="hero__content">
+            <h1>This is the future of GAMING: GameIt!</h1>
+            <p>
+              Find a game of any genre from the browser of supported sites. But
+              beware – at your <u>own risk</u>!
+            </p>
+          </div>
+        </section>
+
+        <section class="shelf">
+          <div class="shelf__header">
+            <h2>Games</h2>
+            <!-- Mobile filters (shown only on phones) -->
+            <div class="filters-mobile" aria-label="Mobile filters">
+              <div class="fm-row">
+                <!-- SOURCE -->
+                <div class="fm-col">
+                  <button id="btnSource" class="fm-btn" type="button">
+                    Source:
+                  </button>
+                  <div id="menuSource" class="fm-menu" hidden>
+                    <button class="fm-menu__item" data-src="ALL">ALL</button>
+                    <button class="fm-menu__item" data-src="Anker">
+                      Anker
+                    </button>
+                    <button class="fm-menu__item" data-src="RepackGames">
+                      Repack
+                    </button>
+                    <button class="fm-menu__item" data-src="OnlineFix">
+                      OnlineFix
+                    </button>
+                    <button class="fm-menu__item" data-src="Game3RB">
+                      Game3RB
+                    </button>
+                    <button class="fm-menu__item" data-src="SteamUnderground">
+                      SteamUnd.
+                    </button>
+                  </div>
+                </div>
+
+                <!-- SORT -->
+                <div class="fm-col">
+                  <button id="btnSort" class="fm-btn" type="button">
+                    Sort by:
+                  </button>
+                  <div id="menuSort" class="fm-menu" hidden>
+                    <button class="fm-menu__item" data-sort="default">
+                      Default
+                    </button>
+                    <button class="fm-menu__item" data-sort="name-asc">
+                      Name (A-Z)
+                    </button>
+                    <button class="fm-menu__item" data-sort="name-desc">
+                      Name (Z-A)
+                    </button>
+                    <button class="fm-menu__item" data-sort="source-asc">
+                      Source (A-Z)
+                    </button>
+                    <button class="fm-menu__item" data-sort="source-desc">
+                      Source (Z-A)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cards" id="cardGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- game modal -->
+    <div id="gameModal" class="modal" hidden>
+      <div class="modal__dialog">
+        <button id="modalClose" class="modal__close" aria-label="Close">
+          ×
+        </button>
+        <div id="modalBody" class="modal__body"></div>
+      </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/mobile_menu.js"></script>
+    
+    <script>
+      //---Filter-source-sort-menu---//
+      (function () {
+        const btnSource = document.getElementById("btnSource");
+        const menuSource = document.getElementById("menuSource");
+        const btnSort = document.getElementById("btnSort");
+        const menuSort = document.getElementById("menuSort");
+
+        const srcFilterBar = document.getElementById("srcFilter");
+        const sortSelect = document.getElementById("sortSelect");
+
+        function toggleMenu(btn, menu, open) {
+          if (!btn || !menu) return;
+          const willOpen =
+            typeof open === "boolean" ? open : menu.hasAttribute("hidden");
+          if (willOpen) {
+            btn.classList.add("is-open");
+            menu.removeAttribute("hidden");
+          } else {
+            btn.classList.remove("is-open");
+            menu.setAttribute("hidden", "");
+          }
         }
-      })
-      .catch(err => {
-        console.error('logout err:', err);
-        alert('logout JS error');
-      });
-    }
-  </script>
-</head>
-<body>
 
-<!-- loading screen -->
-<div id="loadingScreen" class="loading-screen" hidden>
-  <div class="loading-content">
-    <div class="loading-spinner"></div>
-    <p>Loading games…</p>
-  </div>
-</div>
+        if (btnSource && menuSource) {
+          btnSource.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (btnSort && menuSort) toggleMenu(btnSort, menuSort, false);
+            toggleMenu(btnSource, menuSource);
+          });
+        }
+        if (btnSort && menuSort) {
+          btnSort.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (btnSource && menuSource)
+              toggleMenu(btnSource, menuSource, false);
+            toggleMenu(btnSort, menuSort);
+          });
+        }
 
-<!-- topbar -->
-<header class="topbar">
-  <div class="topbar__left">
-    <div class="brand">
-      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
-        <circle cx="12" cy="12" r="4" fill="black" opacity="0.7"></circle>
-      </svg>
-      <span class="brand__text">GAME.IT</span>
-    </div>
+        document.addEventListener("click", (e) => {
+          const withinSource =
+            btnSource &&
+            (btnSource.contains(e.target) ||
+              (menuSource && menuSource.contains(e.target)));
+          const withinSort =
+            btnSort &&
+            (btnSort.contains(e.target) ||
+              (menuSort && menuSort.contains(e.target)));
+          if (!withinSource && btnSource && menuSource)
+            toggleMenu(btnSource, menuSource, false);
+          if (!withinSort && btnSort && menuSort)
+            toggleMenu(btnSort, menuSort, false);
+        });
 
-    <!-- Mobile burger -->
-    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
-      <span></span><span></span><span></span>
-    </button>
+        if (menuSource) {
+          menuSource.addEventListener("click", (e) => {
+            const item = e.target.closest(".fm-menu__item[data-src]");
+            if (!item) return;
+            const wanted = item.getAttribute("data-src");
+            if (srcFilterBar) {
+              const desktopBtn = srcFilterBar.querySelector(
+                `button[data-src="${wanted}"]`
+              );
+              if (desktopBtn) desktopBtn.click();
+              else if (window.setSourceFilter) window.setSourceFilter(wanted);
+            } else if (window.setSourceFilter) {
+              window.setSourceFilter(wanted);
+            }
+            toggleMenu(btnSource, menuSource, false);
+          });
+        }
 
-    <nav class="nav">
-      <button class="nav__link active" data-route="store" onclick="window.location='/'">Underground</button>
-      <button class="nav__link" data-route="library" onclick="window.location='/library'">Library</button>
-      <button class="nav__link" data-route="community" onclick="window.location='/community'">Community</button>
-      <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
-      <button class="nav__link" data-route="community" onclick="wllogout()">WL Logout</button>
-    </nav>
-  </div>
-
-  <div class="topbar__right">
-    <div class="search">
-      <input id="searchInput" type="search" placeholder="Search games…">
-    </div>
-    <!-- mount point for auth UI (JS will inject everything here) -->
-    <div id="auth-root"></div>
-  </div>
-</header>
-
-<!-- Backdrop for mobile drawer -->
-<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
-
-<!-- layout -->
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar__section">
-      <div class="sidebar__title">Navigation</div>
-      <a class="sidebar__item active" href="/">Games</a>
-      <a class="sidebar__item" href="https://massgrave.dev/" target="_blank" rel="noopener noreferrer">Windows / Office Massgrave</a>
-    </div>
-  </aside>
-
-  <main class="content">
-    <section class="hero">
-      <div class="hero__bg"></div>
-      <div class="hero__content">
-        <h1>This is the future of GAMING: GameIt!</h1>
-        <p>Find a game of any genre from the browser of supported sites. But beware – at your <u>own risk</u>!</p>
-      </div>
-    </section>
-
-    <section class="shelf">
-      <div class="shelf__header">
-        <h2>Recommended for you:</h2>
-        <div id="srcFilter" class="src-filter">
-          <button data-src="ALL">ALL</button>
-          <button data-src="Anker">Anker</button>
-          <button data-src="RepackGames">Repack</button>
-          <button data-src="OnlineFix">OnlineFix</button>
-          <button data-src="Game3RB">Game3RB</button>
-          <button data-src="SteamUnderground">SteamUnd.</button>
-        </div>
-        <div class="sort-controls" style="margin: 15px 0; display: flex; align-items: center; gap: 10px;">
-          <label style="color: #fff;">Sort by:</label>
-          <select id="sortSelect" style="padding: 8px; background: #1a1d29; color: #fff; border: 1px solid #2a2d3a; border-radius: 4px;">
-            <option value="default">Default</option>
-            <option value="name-asc">Name (A-Z)</option>
-            <option value="name-desc">Name (Z-A)</option>
-            <option value="source-asc">Source (A-Z)</option>
-            <option value="source-desc">Source (Z-A)</option>
-          </select>
-        </div>
-      </div>
-      <div class="cards" id="cardGrid"></div>
-    </section>
-  </main>
-</div>
-
-<!-- game modal -->
-<div id="gameModal" class="modal" hidden>
-  <div class="modal__dialog">
-    <button id="modalClose" class="modal__close" aria-label="Close">×</button>
-    <div id="modalBody" class="modal__body"></div>
-  </div>
-</div>
-
-<script src="/js/app.js"></script>
-<script src="/js/auth.js"></script>
-
-<script>
-  (function () {
-    var btn = document.getElementById('mobileMenuBtn');
-    var sidebar = document.querySelector('.sidebar');
-    var backdrop = document.getElementById('sidebarBackdrop');
-
-    function openSidebar() {
-      if (!sidebar || !backdrop) return;
-      sidebar.classList.add('is-open');
-      backdrop.hidden = false;
-      document.body.style.overflow = 'hidden';
-    }
-    function closeSidebar() {
-      if (!sidebar || !backdrop) return;
-      sidebar.classList.remove('is-open');
-      backdrop.hidden = true;
-      document.body.style.overflow = '';
-    }
-
-    if (btn) btn.addEventListener('click', function () {
-      if (sidebar && sidebar.classList.contains('is-open')) closeSidebar();
-      else openSidebar();
-    });
-
-    if (backdrop) backdrop.addEventListener('click', closeSidebar);
-
-    window.addEventListener('resize', function () {
-      if (window.innerWidth > 900) closeSidebar();
-    });
-  })();
-</script>
-</body>
+        if (menuSort) {
+          menuSort.addEventListener("click", (e) => {
+            const item = e.target.closest(".fm-menu__item[data-sort]");
+            if (!item) return;
+            const val = item.getAttribute("data-sort");
+            if (sortSelect) {
+              sortSelect.value = val;
+              sortSelect.dispatchEvent(new Event("change", { bubbles: true }));
+            } else if (window.applySortToCards) {
+              window.applySortToCards(val);
+            }
+            toggleMenu(btnSort, menuSort, false);
+          });
+        }
+      })();
+    </script>
+  </body>
 </html>

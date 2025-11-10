@@ -1,15 +1,16 @@
-
 // ----- HELPERS -----
-const DEFAULT_SOURCE = '/api/all'; // URL listingu, čo chceš scrapovať
-const API_ENDPOINT = '';            // náš serverový endpoint
+const DEFAULT_SOURCE = '/api/all'; // listing URL to scrape
+const API_ENDPOINT = '';           // server endpoint (unused here)
 
 // --- progressive search state ---
 let currentES = null;
 let activeSrcFilter = 'ALL';
 let onlineFixVersions = [];     // filled when OnlineFix cards arrive
 const loadedKeys = new Set();   // dedupe (href|src or title|src)
+
 // ===== FAVOURITES (localStorage) =====
 const FAV_KEY = 'kda_favs_v1';
+
 // ---- OF index persist (for Library page) ----
 const OF_LS_KEY = 'kda_ofindex_v1';
 
@@ -63,6 +64,7 @@ function openSSE(url, { onItem, onItems, onDone } = {}) {
 }
 
 
+// Persist OF indices to LS
 function saveOFIndexLS() {
   const byVersion = {};
   for (const [sv, v] of OFVersionIndex.entries()) {
@@ -103,6 +105,7 @@ function saveOFIndexLS() {
 }
 
 
+// Seed OF indices from LS
 function seedOFIndexFromLS() {
   try {
     const raw = JSON.parse(localStorage.getItem(OF_LS_KEY) || '{}');
@@ -149,6 +152,7 @@ function seedOFIndexFromLS() {
 seedOFIndexFromLS();
 
 
+// ===== FAVOURITES =====
 function fav_load() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); }
   catch { return []; }
@@ -218,7 +222,7 @@ async function fav_remove(it) {
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ items: local })
       });
-      // keep LS as cache; alebo vyčisti: fav_save([]);
+      // keep LS as cache
     }
   } catch {}
 })();
@@ -267,7 +271,6 @@ function sanitizeGameForFav(g) {
         img: of.item.poster || '',
         version: of.item.version || of.full || '',
         build: of.item.build || of.full || ''
-
       } : null
     } : null
   };
@@ -285,7 +288,7 @@ function ctx_create(x, y, items = []) {
   const box = document.createElement('div');
   box.className = 'ctx-menu';
 
-  items.forEach((it, idx) => {
+  items.forEach((it) => {
     if (it === 'sep') {
       const sep = document.createElement('div'); sep.className = 'ctx-sep'; box.appendChild(sep);
       return;
@@ -317,7 +320,6 @@ function ctx_create(x, y, items = []) {
 // Hide on click elsewhere / ESC
 document.addEventListener('click', () => ctx_destroy());
 document.addEventListener('contextmenu', e => {
-  // let browser menu work if not our card menu (we handle per-card)
   if (__ctxMenuEl && !__ctxMenuEl.contains(e.target)) ctx_destroy();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ctx_destroy(); });
@@ -347,12 +349,14 @@ function showCardMenu(ev, game) {
   ctx_create(ev.clientX, ev.clientY, menu);
 }
 
+// ===== ONLINE-FIX INDEXING =====
 function shortVersion(v) {
   // pick first up to 3 numeric segments, e.g. "0.37.5" from "0.37.5.0.18733"
   const m = (v || '').match(/\d+(?:\.\d+){0,5}/);
   if (!m) return '';
   return m[0].split('.').slice(0, 3).join('.');
 }
+
 // Separate indices for fast lookup
 let OFVersionIndex = new Map(); // "0.37.5" -> meta
 let OFBuildIndex   = new Map(); // "18733"  -> meta
@@ -362,7 +366,6 @@ let loadedGames = [];
 // === SORT FUNCTIONALITY ===
 function sortGames(games, sortType) {
   const gamesCopy = [...games];
-  
   switch(sortType) {
     case 'name-asc':
       return gamesCopy.sort((a, b) => a.title.localeCompare(b.title, 'sk'));
@@ -377,52 +380,41 @@ function sortGames(games, sortType) {
   }
 }
 
-function applySortToCards() {
-  const sortType = document.getElementById('sortSelect')?.value || 'default';
+// Accepts override value; falls back to #sortSelect
+function applySortToCards(overrideSort) {
+  const sortType = overrideSort || document.getElementById('sortSelect')?.value || 'default';
   if (sortType === 'default') return;
 
   const grid = document.getElementById('cardGrid');
   const cards = Array.from(grid.querySelectorAll('.card:not(.skeleton)'));
-  
   if (cards.length === 0) return;
 
-  // Extract data from DOM cards
   const cardsWithData = cards.map(card => ({
     element: card,
     title: card.querySelector('.card__title')?.textContent || '',
     src: card.querySelector('.card__meta span:first-child')?.textContent || ''
   }));
 
-  // Sort based on selected type
-  let sorted;
-  switch(sortType) {
-    case 'name-asc':
-      sorted = cardsWithData.sort((a, b) => a.title.localeCompare(b.title, 'sk'));
-      break;
-    case 'name-desc':
-      sorted = cardsWithData.sort((a, b) => b.title.localeCompare(a.title, 'sk'));
-      break;
-    case 'source-asc':
-      sorted = cardsWithData.sort((a, b) => a.src.localeCompare(b.src, 'sk'));
-      break;
-    case 'source-desc':
-      sorted = cardsWithData.sort((a, b) => b.src.localeCompare(a.src, 'sk'));
-      break;
-    default:
-      sorted = cardsWithData;
+  let sorted = cardsWithData;
+  switch (sortType) {
+    case 'name-asc':    sorted = cardsWithData.sort((a,b)=>a.title.localeCompare(b.title,'sk')); break;
+    case 'name-desc':   sorted = cardsWithData.sort((a,b)=>b.title.localeCompare(a.title,'sk')); break;
+    case 'source-asc':  sorted = cardsWithData.sort((a,b)=>a.src.localeCompare(b.src,'sk'));     break;
+    case 'source-desc': sorted = cardsWithData.sort((a,b)=>b.src.localeCompare(a.src,'sk'));     break;
   }
 
-  // Remove all cards and re-append in sorted order
   cards.forEach(card => card.remove());
   sorted.forEach(item => grid.appendChild(item.element));
 }
+window.applySortToCards = applySortToCards;
 
+
+// Reset OF state
 function resetOFState() {
   OFVersionIndex.clear();
   OFBuildIndex.clear();
   loadedGames = [];
 }
-
 
 function shortVersionStr(v) {
   if (!v) return '';
@@ -443,7 +435,7 @@ function extractBuildFromText(t) {
   const m =
     /\bbuild[:\s-]*([0-9]{3,})\b/i.exec(t) || // "Build: 18733" / "Build 18733"
     /\((?:build|b)\s*([0-9]{3,})\)/i.exec(t)  || // "(Build 18733)" / "(b 18733)"
-    /\b([0-9]{5,})\b/.exec(t); // last-chance for big integers like 6821040
+    /\b([0-9]{5,})\b/.exec(t); // big integers like 6821040
   return m ? m[1] : '';
 }
 
@@ -482,8 +474,6 @@ function findOFForGame(game) {
   return null;
 }
 
-
-
 function registerOF(item) {
   if (!item || item.src !== 'OnlineFix') return;
 
@@ -516,10 +506,11 @@ function registerOF(item) {
   saveOFIndexLS();
 }
 
+// FIX: use OFVersionIndex instead of a non-existent OFIndex
 function matchOFForTitle(title) {
   if (!title) return null;
   const tl = title.toLowerCase();
-  for (const [sv, meta] of OFIndex) {
+  for (const [sv, meta] of OFVersionIndex) {
     if (sv && tl.includes(sv)) return { short: sv, ...meta };
   }
   return null;
@@ -534,7 +525,6 @@ function createOFOverlay(ofMeta, preferImg) {
     e.stopPropagation();
     if (ofMeta.item) {
       const cardImg = preferImg || ofMeta.item?.img || ofMeta.item?.poster || '';
-      // otvor modal s OF detailom, ale s artom z tejto karty
       openModal({
         ...ofMeta.item,
         src: 'OnlineFix',
@@ -548,7 +538,6 @@ function createOFOverlay(ofMeta, preferImg) {
 
   return btn;
 }
-
 
 function retagExistingCardsWithOF() {
   const cards = document.querySelectorAll('#cardGrid .card');
@@ -598,6 +587,7 @@ function retagExistingCardsWithOF() {
   });
 }
 
+// ===== IMAGES / SKELETONS =====
 function normalizeImg(src) {
   if (!src) return '';
   let s = String(src);
@@ -618,8 +608,6 @@ function normalizeImg(src) {
   return `${apiPrefix}${encodeURIComponent(s)}`;
 }
 
-
-// Create N skeleton cards (shimmer placeholders)
 function showSkeletons(n = 100) {
   const grid = document.getElementById('cardGrid');
   grid.innerHTML = '';
@@ -645,32 +633,44 @@ function hideSkeletons() {
   const skels = grid.querySelectorAll('.card.skeleton');
   skels.forEach(s => s.remove());
 }
-document.getElementById('srcFilter').addEventListener('click', e => {
 
-  const btn = e.target.closest('button');
-  if (!btn) return;
+// ===== SOURCE FILTER (works with or without #srcFilter) =====
+function setSourceFilter(newSrc) {
+  activeSrcFilter = newSrc || 'ALL';
 
-  activeSrcFilter = btn.dataset.src;
+  // Highlight desktop bar if it exists
+  const bar = document.getElementById('srcFilter');
+  if (bar) {
+    bar.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.src === activeSrcFilter);
+    });
+  }
 
-  // highlight active
-  document.querySelectorAll('#srcFilter button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-
-  // HIDE/SHOW existujúcich kariet
+  // Show/hide existing cards
   const cards = document.querySelectorAll('#cardGrid .card:not(.skeleton)');
   cards.forEach(card => {
-    const src = card.querySelector('.card__meta span')?.textContent.trim();
+    const src = (card.querySelector('.card__meta span')?.textContent || '').trim();
     card.style.display = (activeSrcFilter === 'ALL' || src === activeSrcFilter) ? '' : 'none';
   });
-});
+}
+window.setSourceFilter = setSourceFilter;
 
+// Safe binding for desktop filter bar (if present)
+const srcFilterEl = document.getElementById('srcFilter');
+if (srcFilterEl) {
+  srcFilterEl.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-src]');
+    if (!btn) return;
+    setSourceFilter(btn.dataset.src);
+  });
+}
 
+// ===== CARDS =====
 function appendCards(list = []) {
   const grid = document.getElementById('cardGrid');
   const sortType = document.getElementById('sortSelect')?.value || 'default';
 
   list.forEach(g => {
-
     if (!g.img && g.poster) g.img = g.poster;
     g.img = normalizeImg(g.img);
 
@@ -713,26 +713,26 @@ function appendCards(list = []) {
     loadedGames.push(g);
   });
 
-  // Apply sort if not default
+  // Respect current sort and filter after new cards land
   if (sortType !== 'default') {
-    applySortToCards();
+    applySortToCards(sortType);
+  }
+  if (activeSrcFilter && activeSrcFilter !== 'ALL') {
+    setSourceFilter(activeSrcFilter);
   }
 }
 
-
-
-// --- DEMO fallback dataset (pôvodné) ---
+// Demo fallback dataset
 let games = [
-  { id: 1, title: "Aknosom Hunt", tags: ["Action","RPG"], rating: "Veľmi kladné", price: "19,99 €" },
-  { id: 2, title: "Nebula Raider", tags: ["Adventure","Indie"], rating: "Kladné", price: "14,99 €" },
-  { id: 3, title: "MetroVoid 2077", tags: ["Action","Singleplayer"], rating: "Zmiešané", price: "29,99 €" },
-  { id: 4, title: "Backrooms Escape", tags: ["Horror","Co-op"], rating: "Veľmi kladné", price: "9,99 €" },
-  { id: 5, title: "Thread Mesh Tactics", tags: ["Strategy","Tech"], rating: "Veľmi kladné", price: "24,99 €" },
-  { id: 6, title: "DarkOrbit Redux", tags: ["Space","MMO"], rating: "Kladné", price: "Free" },
+  { id: 1, title: "Aknosom Hunt", tags: ["Action","RPG"], rating: "Very Positive", price: "19,99 €" },
+  { id: 2, title: "Nebula Raider", tags: ["Adventure","Indie"], rating: "Positive", price: "14,99 €" },
+  { id: 3, title: "MetroVoid 2077", tags: ["Action","Singleplayer"], rating: "Mixed", price: "29,99 €" },
+  { id: 4, title: "Backrooms Escape", tags: ["Horror","Co-op"], rating: "Very Positive", price: "9,99 €" },
+  { id: 5, title: "Thread Mesh Tactics", tags: ["Strategy","Tech"], rating: "Very Positive", price: "24,99 €" },
+  { id: 6, title: "DarkOrbit Redux", tags: ["Space","MMO"], rating: "Positive", price: "Free" },
 ];
 
-
-// --- UI helpery (tvoje) ---
+// Simple DOM helper
 function el(tag, attrs={}, children=[]) {
   const node = document.createElement(tag);
   Object.entries(attrs).forEach(([k,v]) => {
@@ -744,7 +744,6 @@ function el(tag, attrs={}, children=[]) {
   children.forEach(c => node.append(c));
   return node;
 }
-
 
 function renderCards(list = games) {
   const grid = document.getElementById('cardGrid');
@@ -792,8 +791,7 @@ function renderCards(list = games) {
   });
 }
 
-
-
+// ===== MODAL =====
 function openModal(game) {
   if (!game.img && game.poster) game.img = game.poster;
   if (!game.tags && game.genres) game.tags = game.genres;
@@ -802,7 +800,7 @@ function openModal(game) {
   const body = document.getElementById('modalBody');
   body.innerHTML = '';
 
-  // --- COVER ---
+  // COVER
   const coverUrl = normalizeImg(game.img);
   const cover = el('div', {
     class: 'modal__cover',
@@ -810,7 +808,8 @@ function openModal(game) {
       ? `background-image:url('${coverUrl}');background-size:cover;background-position:center;`
       : ''
   });
-  // --- INFO BLOCK ---
+
+  // INFO BLOCK
   const info = [];
 
   info.push(el('h2', { class: 'modal__title' }, game.title || '???'));
@@ -840,9 +839,8 @@ function openModal(game) {
   if (game.about)
     info.push(el('p', { style: 'margin-top:10px;' }, game.about));
 
-  // --- ŠPECIÁLNE LEN PRE Game3RB ---
+  // SPECIAL: Game3RB
   if (game.src === 'Game3RB') {
-    // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
@@ -854,9 +852,9 @@ function openModal(game) {
         )
       );
     }
+  }
 
-
-  // Render trailer only if the source does NOT have its own trailer section.
+  // Generic trailer if source doesn't have its own trailer block
   const sourceHasOwnTrailer = (game.src === 'RepackGames' || game.src === 'OnlineFix');
   if (!sourceHasOwnTrailer && game.trailer) {
     if (/youtube|youtu\.be/.test(game.trailer)) {
@@ -875,7 +873,7 @@ function openModal(game) {
     }
   }
 
-  // NEW: render the generic block only for sources WITHOUT their own section
+  // Generic downloads if source doesn't have its own section
   const hasOwnDownloadSection = (game.src === 'RepackGames' || game.src === 'OnlineFix');
   if (!hasOwnDownloadSection && Array.isArray(game.downloadLinks)) {
     const validLinks = game.downloadLinks.filter(x => x && x.link && typeof x.link === 'string');
@@ -890,12 +888,9 @@ function openModal(game) {
       ));
     }
   }
-}
 
-  // --- ŠPECIÁLNE LEN PRE RepackGames ---
+  // SPECIAL: RepackGames
   if (game.src === 'RepackGames') {
-
-    // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
@@ -908,8 +903,6 @@ function openModal(game) {
       );
     }
 
-
-    // Trailer (YouTube embed)
     if (game.trailer && game.trailer.includes('youtube')) {
       info.push(
         el('iframe', {
@@ -921,7 +914,6 @@ function openModal(game) {
       );
     }
 
-    // Download links
     if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
       const links = game.downloadLinks.map(dl =>
         el('a', {
@@ -934,7 +926,8 @@ function openModal(game) {
       info.push(el('div', { class: 'modal__links' }, links));
     }
   }
-  // --- ŠPECIÁLNE LEN PRE OnlineFix ---
+
+  // SPECIAL: OnlineFix
   if (game.src === 'OnlineFix') {
     if (game.version) {
       info.push(el('p', { class: 'modal__version' }, `Version: ${game.version}`));
@@ -942,7 +935,6 @@ function openModal(game) {
     if (game.build) {
       info.push(el('p', { class: 'modal__build' }, `Build: ${game.build}`));
     }
-    // screenshoty (max 4)
     if (Array.isArray(game.screenshots) && game.screenshots.length) {
       const shots = game.screenshots.slice(0, 4);
       info.push(
@@ -954,7 +946,6 @@ function openModal(game) {
         )
       );
     }
-    // trailer
     if (game.trailer) {
       info.push(
         el('iframe', {
@@ -966,7 +957,6 @@ function openModal(game) {
       );
     }
 
-    // download links
     if (Array.isArray(game.downloadLinks) && game.downloadLinks.length) {
       const links = game.downloadLinks.map(dl =>
         el('a', {
@@ -980,20 +970,14 @@ function openModal(game) {
     }
   }
 
-  // --- BUTTONS ---
-  // const buttons = el('div', { class: 'modal__buttons' }, [
-  //   el('button', { class: 'btn btn--primary' }, 'Kúpiť'),
-  //   el('button', { class: 'btn btn--ghost' }, 'Do wishlistu')
-  // ]);
-
   body.append(
     cover,
-    el('div', { class: 'modal__info' }, info) // buttons deleted
+    el('div', { class: 'modal__info' }, info)
   );
   modal.hidden = false;
 }
 
-
+// ===== UI EVENTS =====
 function attachEvents(){
   document.getElementById('modalClose').addEventListener('click', () => {
     document.getElementById('gameModal').hidden = true;
@@ -1007,7 +991,6 @@ function attachEvents(){
       btn.classList.add('active');
     });
   });
-
 }
 
 const search = document.getElementById('searchInput');
@@ -1027,9 +1010,7 @@ search.addEventListener('keydown', (e) => {
 
   openSSE(`/api/search/stream?q=${encodeURIComponent(q)}`, {
     onItem(item) {
-      // register OF version (no overlay on OF itself, just index)
       if (item?.src === 'OnlineFix' && (item.version || item.build)) registerOF(item);
-
       const it = { id: Date.now() + Math.random(), ...item };
       appendCards([it]);
     },
@@ -1056,7 +1037,6 @@ search.addEventListener('keydown', (e) => {
 
 });
 
-
 async function loadFromScrape(){
   closeStream();
   showSkeletons(100);
@@ -1080,13 +1060,11 @@ async function loadFromScrape(){
   });
 }
 
-
 // === IMAGE PREVIEW (fullscreen zoom + zoom toggle) ===
 document.addEventListener('click', e => {
   const img = e.target.closest('.modal__shot');
   if (!img) return;
 
-  // vytvor overlay
   const overlay = document.createElement('div');
   overlay.className = 'image-preview-overlay';
 
@@ -1097,12 +1075,11 @@ document.addEventListener('click', e => {
 
   let zoomed = false;
 
-  // toggle zoom on image click
   big.addEventListener('click', ev => {
-    ev.stopPropagation(); // aby sa nezavrelo overlay
+    ev.stopPropagation();
     zoomed = !zoomed;
     if (zoomed) {
-      big.style.transform = 'scale(1.8)'; // zväčšiť
+      big.style.transform = 'scale(1.8)';
       big.style.cursor = 'zoom-out';
     } else {
       big.style.transform = 'scale(1)';
@@ -1110,12 +1087,10 @@ document.addEventListener('click', e => {
     }
   });
 
-  // zatvoriť kliknutím mimo obrázka
   overlay.addEventListener('click', ev => {
     if (ev.target === overlay) overlay.remove();
   });
 
-  // ESC zatváranie
   const onKey = ev => {
     if (ev.key === 'Escape') {
       overlay.remove();
@@ -1125,19 +1100,18 @@ document.addEventListener('click', e => {
   document.addEventListener('keydown', onKey);
 });
 
-
 document.addEventListener('DOMContentLoaded', async () => {
   attachEvents();
-  
-  // Event listener pre sort dropdown
+
+  // Sort dropdown (if present)
   const sortSelect = document.getElementById('sortSelect');
   if (sortSelect) {
     sortSelect.addEventListener('change', () => {
       applySortToCards();
     });
   }
-  
-  await loadFromScrape(); 
+
+  await loadFromScrape();
 
   const params = new URLSearchParams(window.location.search);
   const initialQuery = (params.get('s') || '').trim();
@@ -1172,5 +1146,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
-
 });

@@ -6,17 +6,28 @@
   <title>GAME.IT</title>
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
+  <script>
+    function wllogout() {
+      fetch("/api/whitelist/logout", {
+        method: "POST",
+        credentials: "include",
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.ok) {
+            window.location.reload();
+          } else {
+            alert("whitelist logout fail: " + (data.error || "unknown"));
+          }
+        })
+        .catch((err) => {
+          console.error("logout err:", err);
+          alert("logout JS error");
+        });
+    }
+  </script>
 </head>
 <body>
-
-<!-- loading screen -->
-<div id="loadingScreen" class="loading-screen" hidden>
-  <div class="loading-content">
-    <div class="loading-spinner"></div>
-    <p>Loading games…</p>
-  </div>
-</div>
-
 <!-- topbar -->
 <header class="topbar">
   <div class="topbar__left">
@@ -28,21 +39,74 @@
       <span class="brand__text">GAME.IT</span>
     </div>
 
-    <nav class="nav">
-      <button class="nav__link" data-route="store" onclick="window.location='/'">Underground</button>
-      <button class="nav__link" data-route="library" onclick="window.location='/library';">Library</button>
-      <button class="nav__link" data-route="community" onclick="window.location='/community'">Community</button>
-      <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
-    </nav>
-  </div>
+<!-- Mobile burger -->
+        <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
 
-  <div class="topbar__right">
-    <div class="search">
-      <input id="searchInput" type="search" placeholder="Search games…">
-    </div>
-  <!-- mount point for auth UI (JS will inject everything here) -->
-  <div id="auth-root"></div>
-</header>
+        <nav class="nav">
+          <button
+            class="nav__link active"
+            data-route="store"
+            onclick="window.location='/'"
+          >
+            Underground
+          </button>
+          <button
+            class="nav__link"
+            data-route="library"
+            onclick="window.location='/library'"
+          >
+            Library
+          </button>
+          <button
+            class="nav__link"
+            data-route="community"
+            onclick="window.location='/community'"
+          >
+            Community
+          </button>
+          <button
+            class="nav__link trusted"
+            data-route="trusted"
+            onclick="window.location='/trusted'"
+          >
+            Trusted ❤️
+          </button>
+          <button class="nav__link" data-route="community" onclick="wllogout()">
+            WL Logout
+          </button>
+        </nav>
+      </div>
+
+      <div class="topbar__right">
+        <div class="search">
+          <input id="searchInput" type="search" placeholder="Search games…" />
+        </div>
+        <!-- mount point for auth UI (JS will inject everything here) -->
+        <div id="auth-root"></div>
+      </div>
+    </header>
+
+    <!-- Backdrop for mobile drawer -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+    <!-- layout -->
+    <div class="layout">
+      <aside class="sidebar" id="mobileDrawer">
+        <nav class="mnav" aria-label="Main">
+          <div class="mnav__section">
+            <div class="mnav__title">Menu</div>
+            <a class="mnav__item" href="/">Games</a>
+            <a class="mnav__item" href="/library">Library</a>
+            <a class="mnav__item" href="/community">Community</a>
+            <a class="mnav__item" href="/trusted">Trusted ❤️</a>
+            <button id="mnav-logout" class="mnav__item mnav__btn" type="button">
+              Whitelist logout
+            </button>
+          </div>
+        </nav>
+      </aside>
 
 <!-- Trusted Downloads Layout -->
 <div class="trusted-container">
@@ -64,5 +128,6 @@
 <script src="/js/trusted.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/mobile_menu.js"></script>
 </body>
 </html>

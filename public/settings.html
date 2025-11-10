@@ -6,6 +6,11 @@
   <title>GAME.IT — Settings</title>
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
+
+  <!-- Hide the mobile drawer on desktop only on this page -->
+  <style>
+    @media (min-width:901px){ #mobileDrawer{ display:none !important; } }
+  </style>
 </head>
 <body>
 
@@ -28,6 +33,11 @@
       <span class="brand__text">GAME.IT</span>
     </div>
 
+    <!-- burger (mobile only) -->
+    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <nav class="nav">
       <button class="nav__link" data-route="store" onclick="window.location='/'">Underground</button>
       <button class="nav__link" data-route="library" onclick="window.location='/library'">Library</button>
@@ -39,6 +49,20 @@
   <!-- mount point for auth UI -->
   <div id="auth-root"></div>
 </header>
+
+<!-- backdrop for drawer -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+<!-- MOBILE DRAWER: only 3 items -->
+<aside class="sidebar" id="mobileDrawer">
+  <nav class="mnav" aria-label="Mobile">
+    <div class="mnav__section">
+      <a class="mnav__item" href="/">Games</a>
+      <a class="mnav__item" href="/settings">Settings</a>
+      <a class="mnav__item" id="mobileProfileLink" href="/profile">Profile</a>
+    </div>
+  </nav>
+</aside>
 
 <!-- layout -->
 <div class="layout">
@@ -72,49 +96,45 @@
         padding:16px;
       ">
         <h2 style="margin:0 0 12px; font-size:18px; font-weight:800; color:#fff;">Account Settings</h2>
-        <!-- tlačidlá -->
         <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <button class="btn btn--ghost" id="btnChangeUsername">Change Username</button>
-        <button class="btn btn--ghost" id="btnChangeEmail">Change Email</button>
-        <button class="btn btn--ghost" id="btnChangePassword">Change Password</button>
+          <button class="btn btn--ghost" id="btnChangeUsername">Change Username</button>
+          <button class="btn btn--ghost" id="btnChangeEmail">Change Email</button>
+          <button class="btn btn--ghost" id="btnChangePassword">Change Password</button>
         </div>
 
-        <!-- USERNAME -->
         <form id="formUsername" class="auth-form" style="display:none">
-        <div class="auth-hint" id="msgUser"></div>
-        <div class="auth-field">
+          <div class="auth-hint" id="msgUser"></div>
+          <div class="auth-field">
             <label>New username</label>
             <input id="inpNewUsername" type="text">
-        </div>
-        <button class="btn btn--primary" type="submit">Save</button>
+          </div>
+          <button class="btn btn--primary" type="submit">Save</button>
         </form>
 
-        <!-- EMAIL -->
         <form id="formEmail" class="auth-form" style="display:none">
-        <div class="auth-hint" id="msgEmail"></div>
-        <div class="auth-field">
+          <div class="auth-hint" id="msgEmail"></div>
+          <div class="auth-field">
             <label>New email</label>
             <input id="inpNewEmail" type="email">
-        </div>
-        <button class="btn btn--primary" type="submit">Save</button>
+          </div>
+          <button class="btn btn--primary" type="submit">Save</button>
         </form>
 
-        <!-- PASSWORD -->
         <form id="formPassword" class="auth-form" style="display:none">
-        <div class="auth-hint" id="msgPass"></div>
-        <div class="auth-field">
+          <div class="auth-hint" id="msgPass"></div>
+          <div class="auth-field">
             <label>Current password</label>
             <input id="inpCurr" type="password">
-        </div>
-        <div class="auth-field">
+          </div>
+          <div class="auth-field">
             <label>New password</label>
             <input id="inpNew" type="password">
-        </div>
-        <div class="auth-field">
+          </div>
+          <div class="auth-field">
             <label>Confirm new password</label>
             <input id="inpNew2" type="password">
-        </div>
-        <button class="btn btn--primary" type="submit">Save</button>
+          </div>
+          <button class="btn btn--primary" type="submit">Save</button>
         </form>
 
       </div>
@@ -125,15 +145,25 @@
 <!-- scripts -->
 <script src="/js/auth.js"></script>
 <script src="/js/settings.js"></script>
+<script src="/js/mobile_menu.js"></script>
 <script>
-  // (Optional) Update Profile link right away if session exists
+  // Set Profile links (desktop + mobile) to current user
   document.addEventListener('DOMContentLoaded', async () => {
     try {
       const r = await fetch('/api/me', { credentials: 'include' });
       const j = await r.json();
       if (j?.ok && j?.user?.username) {
-        const link = document.getElementById('settingsProfileLink');
-        if (link) link.href = '/profile/' + encodeURIComponent(j.user.username);
+        const u = '/profile/' + encodeURIComponent(j.user.username);
+        const d = document.getElementById('settingsProfileLink');
+        if (d) d.href = u;
+        const m = document.getElementById('mobileProfileLink');
+        if (m) {
+          m.href = u;
+          // ensure mobile highlight if drawer was initialized already
+          if (location.pathname.toLowerCase().replace(/\/+$/,'') === u.toLowerCase()) {
+            m.classList.add('active');
+          }
+        }
       }
     } catch {}
   });

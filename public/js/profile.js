@@ -11,6 +11,7 @@ const els = {
   rep: document.getElementById('pRep'),
   repUp: document.getElementById('repUp'),
   repDown: document.getElementById('repDown'),
+  repBox: document.getElementById('repBox'),
 
   bioText: document.getElementById('bioText'),
   bioForm: document.getElementById('bioForm'),
@@ -88,6 +89,9 @@ els.extraList.innerHTML = '';
   const isSelf = me && me.id === profile.userId;
   [els.editBioBtn, els.addExtraBtn, els.changeAvatarBtn].forEach(b => b.disabled = !isSelf);
 
+  if (els.repBox) {
+    els.repBox.style.display = isSelf ? 'none' : '';
+  }
   // rep buttons
   els.repUp.disabled = !me || (profile.myRep === 1) || isSelf;
   els.repDown.disabled = !me || (profile.myRep === -1) || isSelf;
@@ -116,7 +120,7 @@ function renderComments(list) {
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 function pathBits() {
-  const parts = location.pathname.split('/').filter(Boolean); // ["profile", "Alex"] alebo ["profile","id","42"]
+  const parts = location.pathname.split('/').filter(Boolean);
   return parts;
 }
 
@@ -154,12 +158,26 @@ async function loadProfile() {
 async function init() {
   me = await fetchMe();
   await loadProfile();
+  const isSelf = !!(me && me.id === profile.userId);
 
-  if (me.id !== profile.userId) {
+  // Hide self-only controls on other profiles
+  if (!isSelf) {
     els.editBioBtn.style.display = 'none';
     els.addExtraBtn.style.display = 'none';
     els.changeAvatarBtn.style.display = 'none';
-    els.commentForm.style.display = 'none';
+  }
+
+  // Comment form: show for logged-in users, hide for guests
+  els.commentForm.style.display = me ? '' : 'none';
+
+  // Optional: disable inputs for guests (defensive)
+  const submitBtn = els.commentForm.querySelector("button[type='submit']");
+  if (!me) {
+    els.commentInput.disabled = true;
+    if (submitBtn) submitBtn.disabled = true;
+  } else {
+    els.commentInput.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
   }
   
   // Bio

@@ -5,34 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GAME.IT — Thread</title>
 
-  <!-- Base styles + palette -->
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
-  <!-- Optional general community styles (keep if you use the composer/list page too) -->
   <link rel="stylesheet" href="/css/community.css">
-  <!-- NEW: detail-only stylesheet -->
   <link rel="stylesheet" href="/css/community_detail.css">
-</head>
+
   <script>
     let warnTimer = null;
-
     window.showWarning = (msg) => {
       const box = document.getElementById('warnBox');
-
       box.textContent = msg;
       box.style.display = 'block';
-
       if (warnTimer) clearTimeout(warnTimer);
-
-      warnTimer = setTimeout(() => {
-        box.style.display = 'none';
-        warnTimer = null;
-      }, 3000);
+      warnTimer = setTimeout(() => { box.style.display = 'none'; warnTimer = null; }, 3000);
     };
   </script>
+</head>
 
 <body>
-
 <header class="topbar">
   <div class="topbar__left">
     <div class="brand" onclick="window.location='/'" role="button" aria-label="Go home">
@@ -42,49 +32,60 @@
       </svg>
       <span class="brand__text">GAME.IT</span>
     </div>
+
+    <!-- Mobile burger -->
+    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <nav class="nav">
       <button class="nav__link" onclick="window.location='/'">Underground</button>
       <button class="nav__link" onclick="window.location='/library'">Library</button>
-      <button class="nav__link active" onclick="window.location='/community'">Community</button>
+      <button class="nav__link" onclick="window.location='/community'">Community</button>
       <button class="nav__link trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
     </nav>
   </div>
-  <!-- mount point for auth UI (JS will inject everything here) -->
+
+  <!-- auth mount -->
   <div id="auth-root"></div>
 </header>
 
+<!-- Backdrop for mobile drawer -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
 <div class="layout">
-  <aside class="sidebar">
+  <!-- Use the same aside as mobile drawer; contains ONLY Back to list -->
+  <aside class="sidebar" id="mobileDrawer">
     <div class="sidebar__section">
       <div class="sidebar__title">Navigation</div>
-      <button class="sidebar__item" onclick="history.back()">← Back to list</button>
+      <!-- Prefer history.back(); fallback to /community if no history -->
+      <a class="mnav__item sidebar__item"
+         href="/community"
+         onclick="if (history.length>1){history.back();return false;}">
+        ← Back to list
+      </a>
     </div>
   </aside>
 
   <main class="content">
     <article id="thread" class="thread-detail thread-shell">
-      <!-- Votes column -->
       <div class="thread-detail__votes">
         <button id="voteUp" class="vote-btn" aria-label="+1">▲</button>
         <span id="voteScore" class="vote-score">0</span>
         <button id="voteDown" class="vote-btn" aria-label="-1">▼</button>
       </div>
 
-      <!-- Main column -->
       <div class="thread-detail__main">
         <header class="thread-header">
           <h1 id="threadTitle"></h1>
 
-          <div class="chips" id="threadMeta">
-            <!-- Injected by JS: category, game, source, author, time -->
-          </div>
+          <div class="chips" id="threadMeta"></div>
 
           <div class="thread-toolbar">
             <button id="copyLink" class="btn btn--ghost sm" type="button">Copy link</button>
           </div>
         </header>
 
-        <!-- Reputation line (shown only if game_title exists) -->
         <div id="repWrap" class="rep-line" hidden>
           <div class="rep-pill" id="repPill">
             <span id="repGameTitle"></span>
@@ -96,10 +97,8 @@
           </div>
         </div>
 
-        <!-- Body -->
         <div class="thread-body prose" id="threadBody"></div>
 
-        <!-- Comments -->
         <section id="comments" class="comments-area">
           <div class="comments-area__head">
             <h2>Comments</h2>
@@ -117,14 +116,17 @@
     </article>
   </main>
 </div>
+
 <div id="warnBox" style="
   position:fixed; top:20px; left:50%; transform:translateX(-50%);
   background:#a00; color:#fff; padding:10px 16px; border-radius:8px;
   font-weight:600; display:none; z-index:999999;
   box-shadow:0 4px 14px rgba(0,0,0,.4);
 "></div>
-<script src="/js/auth.js"></script>
 
+<script src="/js/auth.js"></script>
 <script src="/js/community_detail.js"></script>
+<!-- Drawer/active logic -->
+<script src="/js/mobile_menu.js"></script>
 </body>
 </html>

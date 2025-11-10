@@ -1139,3 +1139,92 @@ body{
 @media (max-width: 900px){
   .search input{ width:160px; }
 }
+/* Mobile drawer contents */
+.mnav{ display:flex; flex-direction:column; gap:24px; padding:16px; }
+.mnav__section{ display:flex; flex-direction:column; gap:8px; }
+.mnav__title{
+  font-weight:700; font-size:12px; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--muted, #9aa6b2); padding:0 4px;
+}
+.mnav__item{
+  display:block; padding:10px 12px; border-radius:10px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  color:#e6eef7; text-decoration:none;
+}
+.mnav__item:hover{ background:rgba(255,255,255,.06); }
+.mnav__btn{ text-align:left; width:100%; background:rgba(220,77,77,.10); border-color:rgba(220,77,77,.24); }
+.mnav__btn:hover{ background:rgba(220,77,77,.14); }
+
+/* Desktop: no static sidebar column */
+/*
+@media (min-width: 901px){
+  .sidebar{ display: none !important; }
+  .layout{ grid-template-columns: 1fr !important; }
+  .sidebar-backdrop{ display: none !important; }
+}
+*/
+/* Hero mobile type scale */
+@media (max-width: 720px) {
+  .hero { min-height: 160px; }
+  .hero__content { padding: 16px; text-align: center; }
+  .hero h1 { margin-bottom: 8px; font-size: clamp(18px, 5.2vw, 24px); }
+  .hero p { font-size: 13px; }
+}
+
+/* Hide legacy desktop controls; show new compact duo on all sizes */
+#srcFilter, .sort-controls { display: none !important; }
+.filters-mobile { display: flex; margin-left: auto; }
+.fm-row { display:flex; justify-content:flex-end; gap:8px; }
+
+/* Short, equal buttons */
+.fm-col { position:relative; flex:0 0 100px; max-width:100px; }
+.fm-btn{
+  width:100%; padding:6px 10px; line-height:1; border-radius:8px;
+  background:rgba(255,255,255,.04); color:var(--text);
+  border:1px solid rgba(255,255,255,.12); font-weight:700; text-transform:lowercase;
+  cursor:pointer; transition:background .15s, border-color .15s, color .15s;
+}
+.fm-btn:hover{ background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.18); color:#fff; }
+.fm-btn.is-open{ background:rgba(102,192,244,.15); border-color:rgba(102,192,244,.35); color:#fff; }
+
+/* Dropdown */
+.fm-menu{
+  position:absolute; right:0; top:calc(100% + 6px); min-width:160px;
+  background:linear-gradient(180deg,#0e1623 0%, #0c141e 100%);
+  border:1px solid rgba(255,255,255,.08); border-radius:10px;
+  box-shadow:0 10px 28px rgba(0,0,0,.45); padding:6px; z-index:40;
+  max-height:60vh; overflow:auto; -webkit-overflow-scrolling:touch;
+}
+.fm-menu__item{
+  display:block; width:100%; text-align:left; padding:9px 10px; border-radius:8px;
+  background:transparent; color:var(--text); border:0; font-size:13px; font-weight:600;
+  cursor:pointer; transition:background .12s, color .12s;
+}
+.fm-menu__item:hover{ background:rgba(255,255,255,.08); color:#fff; }
+
+/* Slightly tighter shelf header on phones */
+@media (max-width: 900px) {
+  .shelf__header { align-items:flex-start; gap:10px; }
+}
+/* Mobile drawer active state */
+#mobileDrawer .mnav__item.active,
+.mnav__item.active{
+  color:#fff;
+  background:rgba(102,192,244,.15);
+  border:1px solid rgba(102,192,244,.35);
+  box-shadow:0 0 12px rgba(102,192,244,.15);
+}
+/* Apply "no left sidebar on desktop" only on pages that opt in */
+@media (min-width: 901px){
+  body.no-sidebar-desktop .layout { /* collapse the grid to full width */
+    grid-template-columns: 1fr !important;
+  }
+  /* hide only the static left column, not the mobile drawer */
+  body.no-sidebar-desktop .layout > aside.sidebar {
+    display: none !important;
+  }
+  body.no-sidebar-desktop .sidebar-backdrop {
+    display: none !important;
+  }
+}

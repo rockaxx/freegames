@@ -7,37 +7,27 @@
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/community.css">
-
   <script>
     let warnTimer = null;
-
     window.showWarning = (msg) => {
       const box = document.getElementById('warnBox');
-
       box.textContent = msg;
       box.style.display = 'block';
-
       if (warnTimer) clearTimeout(warnTimer);
-
-      warnTimer = setTimeout(() => {
-        box.style.display = 'none';
-        warnTimer = null;
-      }, 3000);
+      warnTimer = setTimeout(() => { box.style.display = 'none'; warnTimer = null; }, 3000);
     };
+    function wllogout() {
+      fetch("/api/whitelist/logout", { method: "POST", credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => data.ok ? window.location.reload()
+                                : alert("whitelist logout fail: " + (data.error || "unknown")))
+        .catch((err) => { console.error("logout err:", err); alert("logout JS error"); });
+    }
   </script>
-
 </head>
 
 <body>
-
-<!-- loading screen -->
-<div id="loadingScreen" class="loading-screen" hidden>
-  <div class="loading-content">
-    <div class="loading-spinner"></div>
-    <p>Loading community…</p>
-  </div>
-</div>
-
+<!-- topbar -->
 <header class="topbar">
   <div class="topbar__left">
     <div class="brand">
@@ -48,11 +38,17 @@
       <span class="brand__text">GAME.IT</span>
     </div>
 
+    <!-- Mobile burger -->
+    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <nav class="nav">
       <button class="nav__link" data-route="store" onclick="window.location='/'">Underground</button>
       <button class="nav__link" data-route="library" onclick="window.location='/library'">Library</button>
-      <button class="nav__link active" data-route="community" onclick="window.location='/community'">Community</button>
+      <button class="nav__link" data-route="community" onclick="window.location='/community'">Community</button>
       <button class="nav__link trusted" data-route="trusted" onclick="window.location='/trusted'">Trusted ❤️</button>
+      <button class="nav__link" onclick="wllogout()">WL Logout</button>
     </nav>
   </div>
 
@@ -60,14 +56,32 @@
     <div class="search">
       <input id="threadSearch" type="search" placeholder="Search threads…">
     </div>
-  <!-- mount point for auth UI (JS will inject everything here) -->
-  <div id="auth-root"></div>
+    <!-- auth mount -->
+    <div id="auth-root"></div>
+  </div>
 </header>
+
+<!-- Backdrop for mobile drawer -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
 
 <!-- layout -->
 <div class="layout">
 
-  <aside class="sidebar">
+  <!-- IMPORTANT: drawer must be on the ASIDE, not an inner div -->
+  <aside class="sidebar" id="mobileDrawer">
+    <!-- Mobile/desktop nav inside drawer -->
+    <div class="sidebar__section">
+      <div class="mnav__title">Menu</div>
+      <nav class="mnav" aria-label="Main">
+        <a class="mnav__item" href="/">Games</a>
+        <a class="mnav__item" href="/library">Library</a>
+        <a class="mnav__item" href="/community">Community</a>
+        <a class="mnav__item" href="/trusted">Trusted ❤️</a>
+        <button id="mnav-logout" class="mnav__item mnav__btn" type="button">Whitelist logout</button>
+      </nav>
+    </div>
+
+    <!-- Categories (works on desktop, slides in on mobile) -->
     <div class="sidebar__section">
       <div class="sidebar__title">Categories</div>
       <ul class="sidebar__list">
@@ -90,87 +104,86 @@
     </div>
   </aside>
 
-    <main class="content">
+  <main class="content">
     <section class="hero">
-        <div class="hero__bg"></div>
-        <div class="hero__content">
+      <div class="hero__bg"></div>
+      <div class="hero__content">
         <h1>Community Board</h1>
         <p>Discuss games, mods, fixes. Vote on threads and +rep/−rep games.</p>
 
-    <div class="composer" id="composer">
-      <div class="composer__header">
-        <div class="composer__title">
-          <h3>Create a Thread</h3>
-          <p class="composer__subtitle">Share fixes, mods, questions, or rep a game.</p>
-        </div>
-        <button id="composerToggle" class="btn btn--primary" type="button" aria-expanded="false">
-          Create Thread
-        </button>
-      </div>
-
-      <form id="threadForm" class="composer__form" autocomplete="off">
-        <div class="field">
-          <label for="threadTitle">Thread title</label>
-          <input type="text" id="threadTitle" placeholder="e.g., Online-Fix launcher won’t start on Windows 11" required>
-        </div>
-
-        <div class="composer__row">
-          <div class="field">
-            <label for="threadCategory">Category</label>
-            <select id="threadCategory" required aria-label="Category">
-              <option value="games">Games</option>
-              <option value="tech">Tech</option>
-              <option value="mods">Mods</option>
-              <option value="offtopic">Off-topic</option>
-            </select>
+        <div class="composer" id="composer">
+          <div class="composer__header">
+            <div class="composer__title">
+              <h3>Create a Thread</h3>
+              <p class="composer__subtitle">Share fixes, mods, questions, or rep a game.</p>
+            </div>
+            <button id="composerToggle" class="btn btn--primary" type="button" aria-expanded="false">
+              Create Thread
+            </button>
           </div>
 
-          <div class="field">
-            <label for="gameTitle">Game title (optional)</label>
-            <input type="text" id="gameTitle" placeholder="Game title">
-          </div>
+          <form id="threadForm" class="composer__form" autocomplete="off">
+            <div class="field">
+              <label for="threadTitle">Thread title</label>
+              <input type="text" id="threadTitle" placeholder="e.g., Online-Fix launcher won’t start on Windows 11" required>
+            </div>
 
-          <div class="field">
-            <label for="gameSource">Source (optional)</label>
-            <input type="text" id="gameSource" placeholder="e.g., OnlineFix, FitGirl, Dodi">
-          </div>
-        </div>
+            <div class="composer__row">
+              <div class="field">
+                <label for="threadCategory">Category</label>
+                <select id="threadCategory" required aria-label="Category">
+                  <option value="games">Games</option>
+                  <option value="tech">Tech</option>
+                  <option value="mods">Mods</option>
+                  <option value="offtopic">Off-topic</option>
+                </select>
+              </div>
 
-        <div class="field">
-          <label for="threadBody">Post</label>
-          <textarea id="threadBody" rows="6" placeholder="Write your post…"></textarea>
-          <div class="hint">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to publish</div>
-        </div>
+              <div class="field">
+                <label for="gameTitle">Game title (optional)</label>
+                <input type="text" id="gameTitle" placeholder="Game title">
+              </div>
 
-        <div class="composer__actions">
-          <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
-          <button type="submit" class="btn btn--primary">Publish</button>
+              <div class="field">
+                <label for="gameSource">Source (optional)</label>
+                <input type="text" id="gameSource" placeholder="e.g., OnlineFix, FitGirl, Dodi">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="threadBody">Post</label>
+              <textarea id="threadBody" rows="6" placeholder="Write your post…"></textarea>
+              <div class="hint">Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to publish</div>
+            </div>
+
+            <div class="composer__actions">
+              <button type="button" class="btn btn--ghost" id="composerCancel">Cancel</button>
+              <button type="submit" class="btn btn--primary">Publish</button>
+            </div>
+          </form>
         </div>
-      </form>
-    </div>
 
         <!-- Toolbar: filters + sort -->
         <div class="controls-inline">
-            <div class="filters">
+          <div class="filters">
             <button id="filterToggle" class="filter-btn" type="button">Filters</button>
-            <!-- add filter chips/inputs here if needed -->
-            </div>
-
-            <select id="sortSelect" class="select" aria-label="Sort threads">
+          </div>
+          <select id="sortSelect" class="select" aria-label="Sort threads">
             <option value="new">Newest</option>
             <option value="top">Top (votes)</option>
             <option value="hot">Hot (balanced)</option>
-            </select>
+          </select>
         </div>
-        </div>
+      </div>
     </section>
 
     <section class="community">
-        <div class="thread-list" id="threadList"></div>
-        <div id="emptyState" class="empty-state" hidden>No threads yet. Be the first to post.</div>
+      <div class="thread-list" id="threadList"></div>
+      <div id="emptyState" class="empty-state" hidden>No threads yet. Be the first to post.</div>
     </section>
-    </main>
+  </main>
 </div>
+
 <div id="warnBox" style="
   position:fixed; top:20px; left:50%; transform:translateX(-50%);
   background:#a00; color:#fff; padding:10px 16px; border-radius:8px;
@@ -180,5 +193,6 @@
 
 <script src="/js/auth.js"></script>
 <script src="/js/community.js"></script>
+<script src="/js/mobile_menu.js"></script>
 </body>
 </html>

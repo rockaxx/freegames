@@ -7,6 +7,11 @@
   <link rel="icon" href="/assets/favicon.svg">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/profile.css">
+
+  <!-- Hide the mobile drawer on desktop only on this page -->
+  <style>
+    @media (min-width:901px){ #mobileDrawer{ display:none !important; } }
+  </style>
 </head>
 <body>
 
@@ -19,6 +24,12 @@
       </svg>
       <span class="brand__text">GAME.IT</span>
     </div>
+
+    <!-- burger (mobile only) -->
+    <button id="mobileMenuBtn" class="burger" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <nav class="nav">
       <button class="nav__link" onclick="window.location='/'">Underground</button>
       <button class="nav__link" onclick="window.location='/library'">Library</button>
@@ -30,6 +41,20 @@
     <div id="auth-root"></div>
   </div>
 </header>
+
+<!-- backdrop for drawer -->
+<div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+
+<!-- MOBILE DRAWER: only 3 items -->
+<aside class="sidebar" id="mobileDrawer">
+  <nav class="mnav" aria-label="Mobile">
+    <div class="mnav__section">
+      <a class="mnav__item" href="/">Games</a>
+      <a class="mnav__item" href="/settings">Settings</a>
+      <a class="mnav__item" id="mobileProfileLink" href="/profile">Profile</a>
+    </div>
+  </nav>
+</aside>
 
 <div class="layout">
   <aside class="sidebar">
@@ -59,7 +84,7 @@
             <span class="chip chip--rep">Rep: <strong id="pRep">0</strong></span>
           </div>
 
-          <div class="rep-actions">
+          <div class="rep-actions" id="repBox">
             <button id="repUp" class="btn sm">+rep</button>
             <button id="repDown" class="btn sm btn--ghost">-rep</button>
           </div>
@@ -117,5 +142,27 @@
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/profile.js"></script>
+<script src="/js/mobile_menu.js"></script>
+<script>
+  // Set Profile links (desktop + mobile) to current user
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const r = await fetch('/api/me', { credentials: 'include' });
+      const j = await r.json();
+      if (j?.ok && j?.user?.username) {
+        const u = '/profile/' + encodeURIComponent(j.user.username);
+        const d = document.getElementById('settingsProfileLink');
+        if (d) d.href = u;
+        const m = document.getElementById('mobileProfileLink');
+        if (m) {
+          m.href = u;
+          // ensure mobile highlight if drawer was initialized already
+          const curr = location.pathname.toLowerCase().replace(/\/+$/,'');
+          if (curr === u.toLowerCase()) m.classList.add('active');
+        }
+      }
+    } catch {}
+  });
+</script>
 </body>
 </html>
