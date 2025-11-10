@@ -41,7 +41,6 @@
 <!-- topbar -->
 <header class="topbar">
   <div class="topbar__left">
-    <button class="hamburger" id="menuBtn" aria-label="Menu" aria-expanded="false"><span></span></button>
     <div class="brand">
       <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.9"></circle>
@@ -77,8 +76,6 @@
       <a class="sidebar__item" href="https://massgrave.dev/" target="_blank" rel="noopener noreferrer">Windows / Office Massgrave</a>
     </div>
   </aside>
-  <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
-
   <main class="content">
     <section class="hero">
       <div class="hero__bg"></div>
@@ -135,34 +132,6 @@
 
 <script src="/js/app.js"></script>
 <script src="/js/auth.js"></script>
-
-<script>
-// Sidebar drawer toggle (hamburger + scrim + ESC)
-(function(){
-  const body = document.body;
-  const btn = document.getElementById('menuBtn');
-  const scrim = document.getElementById('sidebarScrim');
-  const sidebar = document.querySelector('.sidebar');
-  if (!btn || !scrim || !sidebar) return;
-
-  const open = () => {
-    body.classList.add('sidebar-open');
-    scrim.hidden = false;
-    btn.setAttribute('aria-expanded', 'true');
-  };
-  const close = () => {
-    body.classList.remove('sidebar-open');
-    scrim.hidden = true;
-    btn.setAttribute('aria-expanded', 'false');
-  };
-
-  btn.addEventListener('click', () =>
-    body.classList.contains('sidebar-open') ? close() : open()
-  );
-  scrim.addEventListener('click', close);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-})();
-</script>
 
 
 </body>
