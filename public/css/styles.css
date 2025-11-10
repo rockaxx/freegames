@@ -1228,3 +1228,15 @@ body{
     display: none !important;
   }
 }
+@media (max-width: 900px) {
+  .hero__content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero__content > div:last-child {
+    margin-top: 18px; /* odstup medzi textom a tabuľkou */
+  }
+}
