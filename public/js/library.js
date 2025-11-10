@@ -36,7 +36,6 @@ function createOFOverlayLib(ofMeta, preferImg) {
       openModal({
         ...(ofMeta.item || {}),
         src: 'OnlineFix',
-        img: cardImg,
         poster: cardImg
       });
     } else if (ofMeta.url) {

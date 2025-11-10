@@ -957,7 +957,6 @@ function openModal(game) {
       info.push(
         el('div', { class: 'modal__shots' },
           shots.map(src => el('img', {
-            src: normalizeImg(src),
             class: 'modal__shot'
           }))
         )
