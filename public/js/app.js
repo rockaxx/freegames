@@ -348,6 +348,18 @@ function showCardMenu(ev, game) {
   }
   ctx_create(ev.clientX, ev.clientY, menu);
 }
+function attachLongPressForCard(card, game) {
+  let pressTimer = null;
+
+  card.addEventListener('touchstart', (e) => {
+    pressTimer = setTimeout(() => {
+      showCardMenu(e.changedTouches[0], game);
+    }, 450);
+  });
+
+  card.addEventListener('touchend', () => clearTimeout(pressTimer));
+  card.addEventListener('touchmove', () => clearTimeout(pressTimer));
+}
 
 // ===== ONLINE-FIX INDEXING =====
 function shortVersion(v) {
@@ -693,6 +705,7 @@ function appendCards(list = []) {
       'data-version': sv || '',
       'data-build': gb || '',
       'data-src': g.src || '',
+      style: 'user-select:none; -webkit-user-select:none; touch-callout:none;',
       onclick: () => openModal(g),
       oncontextmenu: (e) => showCardMenu(e, g)
     }, [
@@ -705,6 +718,9 @@ function appendCards(list = []) {
         ])
       ])
     ]);
+
+
+    attachLongPressForCard(card, g);
 
     const sk = grid.querySelector('.card.skeleton');
     if (sk) sk.replaceWith(card);

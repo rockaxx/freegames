@@ -1240,3 +1240,9 @@ body{
     margin-top: 18px; /* odstup medzi textom a tabuľkou */
   }
 }
+
+.card {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
