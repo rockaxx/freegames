@@ -255,6 +255,7 @@ body{
 
 /* ---------- dialog ---------- */
 .modal__dialog {
+  position: relative;
   width: min(740px, 92vw);
   max-height: 88vh;
   display: flex;
