@@ -113,7 +113,7 @@ function createDownloadCard(item) {
         ${item.readme ? `
         <div class="meta-item">
           <span class="meta-label">Description file:</span>
-          <a class="meta-value" href="/trusted_downloads/${encodeURIComponent(item.folderName)}/README.md" target="_blank">README.md</a>
+          <a class="meta-value" href="/trusted_downloads/${encodeURIComponent(item.folderName)}/readme.md" target="_blank">README.md</a>
         </div>
         ` : ''}
       </div>
