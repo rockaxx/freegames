@@ -17,18 +17,8 @@ const els = {
   composerCancel: $('#composerCancel')
 };
 
-async function isRoleAdmin() {
-  try {
-    const r = await fetch('/api/profile/me', { credentials:'include' });
-    const j = await r.json();
-    if (!j.ok) return false;
-
-    return j.profile.role === 'admin';
-  } catch {
-    return false;
-  }
-}
-
+// This function is not needed anymore - community_remove.js handles admin detection
+// async function isRoleAdmin() { ... }
 
 let state = {
   category: 'all',
@@ -46,7 +36,7 @@ const buildGameKey = (source, title) => {
 
 async function fetchMe() {
   try {
-    const r = await fetch('/api/me');
+    const r = await fetch('/api/me', { credentials:'include' });
     const j = await r.json();
     state.me = j.ok ? j.user : null;
   } catch {}
@@ -58,7 +48,7 @@ async function loadThreads() {
   if (state.search) params.set('q', state.search);
   if (state.sort) params.set('sort', state.sort);
 
-  const r = await fetch('/api/community/threads?' + params.toString());
+  const r = await fetch('/api/community/threads?' + params.toString(), { credentials: 'include' });
   if (!r.ok) {
     console.warn('threads failed', r.status);
     els.list.innerHTML = '';
@@ -71,6 +61,7 @@ async function loadThreads() {
   renderTop();
   renderRepBoard(data.topGames || []);
 }
+
 // Focus title after opening
 function focusTitleSoon() {
   setTimeout(() => document.getElementById('threadTitle')?.focus(), 160);
@@ -84,6 +75,7 @@ function renderList() {
   }
   els.empty.hidden = true;
 
+  // IMPORTANT: render "remove-thread" as hidden; community_remove.js will reveal for admins.
   els.list.innerHTML = state.threads.map(t => `
     <article class="thread-card thread-card--link" data-id="${t.id}">
       <div class="thread-votes">
@@ -112,7 +104,7 @@ function renderList() {
             : ''}
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <button class="remove-thread ${isAdmin ? '' : 'adm-hidden'}">Remove thread</button>
+            <button class="remove-thread adm-hidden">Remove thread</button>
             <button class="show-details">Show details</button>
             <a class="btn btn--ghost sm" href="/community/${t.id}" onclick="event.stopPropagation()">Open</a>
           </div>
@@ -122,10 +114,16 @@ function renderList() {
   `).join('');
 
   // card click -> detail
+  // inside renderList() after creating cards
   $$('.thread-card--link').forEach(card => {
     card.onclick = (e) => {
-      // ignore if user clicked a control inside footer
-      if (e.target.closest('.show-details') || e.target.closest('a.btn')) return;
+      // ADD the .remove-thread guard
+      if (
+        e.target.closest('.show-details') ||
+        e.target.closest('a.btn') ||
+        e.target.closest('.remove-thread') // <-- prevent navigation on delete
+      ) return;
+
       const id = card.dataset.id;
       location.href = `/community/${id}`;
     };
@@ -136,15 +134,12 @@ function renderList() {
     btn.onclick = (e) => {
       e.stopPropagation();
       const card = btn.closest('.thread-card');
-      const body = card.querySelector('.thread-body');
       card.classList.toggle('is-expanded');
       btn.textContent = card.classList.contains('is-expanded') ? 'Hide details' : 'Show details';
-      // optional: scroll expanded into view
       if (card.classList.contains('is-expanded')) card.scrollIntoView({ behavior:'smooth', block:'nearest' });
     };
   });
 }
-
 
 function renderTop() {
   const top = [...state.threads].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
@@ -202,12 +197,12 @@ composerToggle?.addEventListener('click', () => {
   if (open) focusTitleSoon();
 });
 
-
 composerCancel?.addEventListener('click', () => {
   composer.classList.remove('is-open');
   composerToggle.setAttribute('aria-expanded', 'false');
   composerForm.reset();
 });
+
 ['threadBody','threadTitle'].forEach(id => {
   const el = document.getElementById(id);
   el?.addEventListener('keydown', (e) => {
@@ -221,7 +216,7 @@ composerCancel?.addEventListener('click', () => {
 // On successful submit, close composer the same way
 els.composerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!state.me) return window.showWarning('Login required');
+  if (!state.me) return window.showWarning && window.showWarning('Login required');
 
   const title      = document.getElementById('threadTitle').value.trim();
   const category   = document.getElementById('threadCategory').value;
@@ -233,6 +228,7 @@ els.composerForm.addEventListener('submit', async (e) => {
   const r = await fetch('/api/community/thread', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ title, category, body, gameTitle, gameKey })
   });
 
@@ -251,7 +247,3 @@ els.composerForm.addEventListener('submit', async (e) => {
   await fetchMe();
   await loadThreads();
 })();
-document.addEventListener('DOMContentLoaded', async ()=>{
-  isAdmin = await isRoleAdmin();
-  applyAdminUI();
-});

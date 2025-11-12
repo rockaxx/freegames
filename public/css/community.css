@@ -195,9 +195,9 @@
 }
 
 .remove-thread {
-  border:1px solid rgba(255,255,255,.12);
+  border:1px solid rgba(217,83,79,.3);
   background:transparent;
-  color:var(--text);
+  color:rgba(217,83,79,.9);
   padding:6px 10px;
   border-radius:8px;
   font-weight:700;
@@ -206,7 +206,9 @@
   transition:all .15s ease;
 }
 .remove-thread:hover{
-  background: rgba(255,255,255,.08);
+  background: rgba(217,83,79,.15);
+  border-color: rgba(217,83,79,.5);
+  color:#d9534f;
 }
 
 

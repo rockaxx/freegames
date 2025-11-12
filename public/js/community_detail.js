@@ -37,6 +37,8 @@ async function loadThread() {
 }
 function renderThread() {
   document.title = `${thread.title} — Community`;
+  // Add data-id to article for remove button
+  document.getElementById('thread').setAttribute('data-id', thread.id);
   els.title.textContent = thread.title;
 
   const cat = escapeHtml(thread.category || 'General');
