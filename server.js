@@ -145,6 +145,14 @@ app.get('/settings', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'settings.html'));
 });
 
+// Serve trusted_downloads with markdown support
+app.use('/trusted_downloads', express.static(path.join(__dirname, 'public', 'trusted_downloads'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.md')) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    }
+  }
+}));
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
