@@ -21,7 +21,7 @@ const TRUSTED_ITEMS = [
   },
   {
     name: "NetLimiter",
-    folderName: "NetLimiter",
+    folderName: "Netlimiter",
     description: "Advanced network traffic control and monitoring tool.",
     uploaded: "2025-01-20",
     crackedBy: "K-D-A Team",
