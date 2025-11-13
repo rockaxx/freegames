@@ -2,4 +2,4 @@ node_modules/
 database/db.sqlite
 config/admins.config
 config/visitors.config
-config/wl_wants.log
+config/wl_wants.logs
