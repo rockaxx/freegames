@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 
-const db = require('../database/db'); // shared sqlite connection
 const { ensureAuth } = require('../middleware/auth_middleware');
 const {
   createThread,
@@ -13,6 +12,7 @@ const {
   repGame,
   getGameRep,
   getThreadById,
+  deleteThreadWithChildren
 } = require('../database/community_db');
 
 /**
@@ -24,25 +24,6 @@ function requireAdmin(req, res, next) {
     return res.status(403).json({ ok: false, error: 'forbidden' });
   }
   next();
-}
-
-/* ---------- Simple sqlite helpers ---------- */
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) return reject(err);
-      resolve({ changes: this.changes || 0, lastID: this.lastID });
-    });
-  });
-}
-function begin() {
-  return new Promise((resolve, reject) => db.run('BEGIN', (e) => (e ? reject(e) : resolve())));
-}
-function commit() {
-  return new Promise((resolve, reject) => db.run('COMMIT', (e) => (e ? reject(e) : resolve())));
-}
-function rollback() {
-  return new Promise((resolve) => db.run('ROLLBACK', () => resolve()));
 }
 
 /* ---------- COMMUNITY: read single thread ---------- */
@@ -79,14 +60,14 @@ router.post('/api/community/thread', ensureAuth, async (req, res) => {
     if (!title || !body || !category) {
       return res.status(400).json({ ok: false, error: 'missing-fields' });
     }
-    const id = (await createThread({
+    const id = await createThread({
       userId: req.user.id,
       title: String(title).trim(),
       body: String(body).trim(),
       category: String(category).trim(),
       gameKey: (gameKey || '').trim() || null,
-      gameTitle: (gameTitle || '').trim() || null,
-    }));
+      gameTitle: (gameTitle || '').trim() || null
+    });
     return res.json({ ok: true, id });
   } catch {
     return res.status(500).json({ ok: false });
@@ -98,8 +79,16 @@ router.post('/api/community/vote', ensureAuth, async (req, res) => {
   try {
     const { threadId, delta } = req.body || {};
     const d = +delta === -1 ? -1 : 1;
-    const r = await voteThread({ userId: req.user.id, threadId: +threadId, delta: d });
-    if (r && r.locked) return res.status(409).json({ ok: false, error: 'locked', value: r.value });
+    const r = await voteThread({
+      userId: req.user.id,
+      threadId: +threadId,
+      delta: d
+    });
+    if (r && r.locked) {
+      return res
+        .status(409)
+        .json({ ok: false, error: 'locked', value: r.value });
+    }
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ ok: false });
@@ -122,7 +111,11 @@ router.post('/api/community/comment', ensureAuth, async (req, res) => {
   try {
     const { threadId, body } = req.body || {};
     if (!threadId || !body) return res.status(400).json({ ok: false });
-    await createComment({ userId: req.user.id, threadId: +threadId, body: String(body).trim() });
+    await createComment({
+      userId: req.user.id,
+      threadId: +threadId,
+      body: String(body).trim()
+    });
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ ok: false });
@@ -139,9 +132,13 @@ router.post('/api/game/rep', ensureAuth, async (req, res) => {
       userId: req.user.id,
       gameKey: String(gameKey).trim(),
       gameTitle: (gameTitle || '').trim(),
-      delta: d,
+      delta: d
     });
-    if (r && r.locked) return res.status(409).json({ ok: false, error: 'locked', value: r.value });
+    if (r && r.locked) {
+      return res
+        .status(409)
+        .json({ ok: false, error: 'locked', value: r.value });
+    }
     const score = await getGameRep(String(gameKey).trim());
     return res.json({ ok: true, score });
   } catch {
@@ -159,25 +156,25 @@ router.get('/api/game/rep/:gameKey', async (req, res) => {
 });
 
 /* ---------- ADMIN: hard delete thread (+ children) ---------- */
-router.delete('/api/community/thread/:id', ensureAuth, requireAdmin, async (req, res) => {
-  const id = +req.params.id;
-  if (!id) return res.status(400).json({ ok: false, error: 'bad-id' });
+router.delete(
+  '/api/community/thread/:id',
+  ensureAuth,
+  requireAdmin,
+  async (req, res) => {
+    const id = +req.params.id;
+    if (!id)
+      return res.status(400).json({ ok: false, error: 'bad-id' });
 
-  try {
-    await begin();
-
-    // delete children first, then the parent
-    await run('DELETE FROM comments      WHERE thread_id = ?', [id]);
-    await run('DELETE FROM thread_votes  WHERE thread_id = ?', [id]);
-    const r = await run('DELETE FROM threads        WHERE id = ?', [id]);
-
-    await commit();
-    return res.json({ ok: true, deleted: r.changes || 0 });
-  } catch (err) {
-    await rollback();
-    console.error('[DELETE thread] failed:', err);
-    return res.status(500).json({ ok: false, error: 'delete-failed' });
+    try {
+      const deleted = await deleteThreadWithChildren(id);
+      return res.json({ ok: true, deleted });
+    } catch (err) {
+      console.error('[DELETE thread] failed:', err);
+      return res
+        .status(500)
+        .json({ ok: false, error: 'delete-failed' });
+    }
   }
-});
+);
 
 module.exports = router;

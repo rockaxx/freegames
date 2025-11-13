@@ -2,25 +2,25 @@ const db = require('./db'); // reuse the SAME sqlite connection/file
 const sqlite3 = require('sqlite3').verbose();
 
 // Promisified helpers over the shared db
-function run(sql, params=[]) {
+function run(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err){
+    db.run(sql, params, function (err) {
       if (err) return reject(err);
       resolve(this);
     });
   });
 }
-function all(sql, params=[]) {
+function all(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows)=>{
+    db.all(sql, params, (err, rows) => {
       if (err) return reject(err);
       resolve(rows);
     });
   });
 }
-function get(sql, params=[]) {
+function get(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row)=>{
+    db.get(sql, params, (err, row) => {
       if (err) return reject(err);
       resolve(row);
     });
@@ -75,20 +75,24 @@ async function createThread({ userId, title, body, category, gameKey, gameTitle 
   );
   return r.lastID;
 }
-async function listThreads({ category='all', q='', sort='new' }) {
+
+async function listThreads({ category = 'all', q = '', sort = 'new' }) {
   const where = [];
   const params = [];
 
   if (category && category !== 'all') {
-    where.push(`t.category = ?`); params.push(category);
+    where.push(`t.category = ?`);
+    params.push(category);
   }
   if (q) {
-    where.push(`(t.title LIKE ? OR t.body LIKE ?)`); params.push(`%${q}%`, `%${q}%`);
+    where.push(`(t.title LIKE ? OR t.body LIKE ?)`);
+    params.push(`%${q}%`, `%${q}%`);
   }
-  const W = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+  const W = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
   // No myVote join here (list is anonymous). myVote riešime v detaile, kde máme userId.
-  const rows = await all(`
+  const rows = await all(
+    `
     SELECT
       t.*,
       COALESCE(tv.score,0)                 AS score,
@@ -106,15 +110,20 @@ async function listThreads({ category='all', q='', sort='new' }) {
     LEFT JOIN users u
       ON u.id = t.user_id
     ${W}
-  `, params);
+  `,
+    params
+  );
 
   if (sort === 'top') {
-    rows.sort((a,b)=> (b.score|0) - (a.score|0));
+    rows.sort((a, b) => (b.score | 0) - (a.score | 0));
   } else if (sort === 'hot') {
-    rows.sort((a,b)=> ((b.score|0)*0.7 + new Date(b.created_at).getTime())
-                    - ((a.score|0)*0.7 + new Date(a.created_at).getTime()));
+    rows.sort(
+      (a, b) =>
+        (b.score | 0) * 0.7 + new Date(b.created_at).getTime() -
+        ((a.score | 0) * 0.7 + new Date(a.created_at).getTime())
+    );
   } else {
-    rows.sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+    rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }
 
   const topGames = await all(`
@@ -128,7 +137,6 @@ async function listThreads({ category='all', q='', sort='new' }) {
 
   return { rows, topGames };
 }
-
 
 async function voteThread({ userId, threadId, delta }) {
   // write-once semantics
@@ -146,13 +154,16 @@ async function voteThread({ userId, threadId, delta }) {
   return { ok: true };
 }
 
-
 async function createComment({ userId, threadId, body }) {
-  await run(`INSERT INTO comments(thread_id,user_id,body) VALUES(?,?,?)`, [threadId, userId, body]);
+  await run(
+    `INSERT INTO comments(thread_id,user_id,body) VALUES(?,?,?)`,
+    [threadId, userId, body]
+  );
 }
 
 async function listComments(threadId) {
-    const rows = await all(`
+  const rows = await all(
+    `
     SELECT
         c.*,
         COALESCE(u.username,'Anonymous') AS author
@@ -160,9 +171,10 @@ async function listComments(threadId) {
     LEFT JOIN users u ON u.id = c.user_id
     WHERE c.thread_id = ?
     ORDER BY c.created_at ASC
-    `, [threadId]);
-    return rows;
-
+    `,
+    [threadId]
+  );
+  return rows;
 }
 
 async function repGame({ userId, gameKey, gameTitle, delta }) {
@@ -181,14 +193,17 @@ async function repGame({ userId, gameKey, gameTitle, delta }) {
   return { ok: true };
 }
 
-
 async function getGameRep(gameKey) {
-  const r = await get(`SELECT SUM(value) AS score FROM game_rep WHERE game_key=?`, [gameKey]);
+  const r = await get(
+    `SELECT SUM(value) AS score FROM game_rep WHERE game_key=?`,
+    [gameKey]
+  );
   return r?.score || 0;
 }
 
-async function getThreadById(threadId, userId=null) {
-    const row = await all(`
+async function getThreadById(threadId, userId = null) {
+  const row = await all(
+    `
     SELECT
         t.*,
         COALESCE(tv.score,0)      AS score,
@@ -212,12 +227,43 @@ async function getThreadById(threadId, userId=null) {
         ON u.id = t.user_id
     WHERE t.id = ?
     LIMIT 1
-    `, [userId || -1, userId || -1, threadId]);
+    `,
+    [userId || -1, userId || -1, threadId]
+  );
 
-    const result = row && row[0];
-    if (!result) return null;
-    return result; 
+  const result = row && row[0];
+  if (!result) return null;
+  return result;
+}
 
+/**
+ * Hard delete of a thread + its comments + votes in one transaction.
+ */
+async function deleteThreadWithChildren(threadId) {
+  if (!threadId) return 0;
+
+  // First get the game_key of the deleted thread
+  const row = await get(`SELECT game_key FROM threads WHERE id = ?`, [threadId]);
+  const gameKey = row?.game_key || null;
+
+  await run('BEGIN');
+  try {
+    await run(`DELETE FROM comments WHERE thread_id = ?`, [threadId]);
+    await run(`DELETE FROM thread_votes WHERE thread_id = ?`, [threadId]);
+
+    // Also remove game_rep entries belonging to that game's key
+    if (gameKey) {
+      await run(`DELETE FROM game_rep WHERE game_key = ?`, [gameKey]);
+    }
+
+    const r = await run(`DELETE FROM threads WHERE id = ?`, [threadId]);
+
+    await run('COMMIT');
+    return r.changes || 0;
+  } catch (err) {
+    await run('ROLLBACK');
+    throw err;
+  }
 }
 
 
@@ -247,9 +293,11 @@ async function listLibraryItems(userId) {
     `SELECT key, payload, created_at FROM library_items WHERE user_id=? ORDER BY created_at DESC`,
     [userId]
   );
-  return rows.map(r => {
+  return rows.map((r) => {
     let obj = {};
-    try { obj = JSON.parse(r.payload); } catch {}
+    try {
+      obj = JSON.parse(r.payload);
+    } catch {}
     return { ...obj, __key: r.key, __created_at: r.created_at };
   });
 }
@@ -262,17 +310,26 @@ async function addLibraryItem(userId, item) {
     [userId, key, payload]
   );
   // If already existed, refresh payload (optional)
-  await run(`UPDATE library_items SET payload=? WHERE user_id=? AND key=?`, [payload, userId, key]);
+  await run(
+    `UPDATE library_items SET payload=? WHERE user_id=? AND key=?`,
+    [payload, userId, key]
+  );
   return { key };
 }
 
 async function removeLibraryItem(userId, key) {
-  await run(`DELETE FROM library_items WHERE user_id=? AND key=?`, [userId, key]);
+  await run(
+    `DELETE FROM library_items WHERE user_id=? AND key=?`,
+    [userId, key]
+  );
 }
 
 async function toggleLibraryItem(userId, item) {
   const key = favKeyServer(item);
-  const row = await get(`SELECT id FROM library_items WHERE user_id=? AND key=?`, [userId, key]);
+  const row = await get(
+    `SELECT id FROM library_items WHERE user_id=? AND key=?`,
+    [userId, key]
+  );
   if (row) {
     await removeLibraryItem(userId, key);
     return { inLibrary: false, key };
@@ -298,20 +355,6 @@ const _initCommunityTables_orig = initCommunityTables;
 initCommunityTables = async function patchedInitAll() {
   await _initCommunityTables_orig();
   await initLibraryTables();
-};
-
-module.exports = {
-  // existing exports...
-  initCommunityTables,
-  createThread, listThreads, voteThread,
-  createComment, listComments, repGame, getGameRep, getThreadById,
-
-  // library exports
-  listLibraryItems,
-  addLibraryItem,
-  removeLibraryItem,
-  toggleLibraryItem,
-  importLibraryItems,
 };
 
 // ===== Profiles =====
@@ -357,23 +400,39 @@ async function initProfileTables() {
 const _initCommunityTables_orig2 = initCommunityTables;
 initCommunityTables = async function initAllWithProfiles() {
   await _initCommunityTables_orig2();
-  await initLibraryTables?.();  // if present
+  await initLibraryTables?.(); // if present
   await initProfileTables();
 };
 
 // Basic user lookup by username (needed by API)
 async function getUserByName(username) {
-  return await get(`SELECT id, username, email FROM users WHERE username = ? LIMIT 1`, [username]);
+  return await get(
+    `SELECT id, username, email FROM users WHERE username = ? LIMIT 1`,
+    [username]
+  );
 }
 
 // Read a full profile with aggregates
 async function getProfileByUserId(userId, viewerId = -1) {
-  const base = await get(`SELECT user_id, bio, avatar FROM profiles WHERE user_id=?`, [userId]);
-  const extras = await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
-  const rep = await get(`SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`, [userId]);
-  const my = (viewerId && viewerId > 0)
-    ? await get(`SELECT value FROM profile_rep WHERE user_id=? AND voter_id=?`, [userId, viewerId])
-    : null;
+  const base = await get(
+    `SELECT user_id, bio, avatar FROM profiles WHERE user_id=?`,
+    [userId]
+  );
+  const extras = await all(
+    `SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`,
+    [userId]
+  );
+  const rep = await get(
+    `SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`,
+    [userId]
+  );
+  const my =
+    viewerId && viewerId > 0
+      ? await get(
+          `SELECT value FROM profile_rep WHERE user_id=? AND voter_id=?`,
+          [userId, viewerId]
+        )
+      : null;
 
   return {
     user_id: userId,
@@ -402,27 +461,46 @@ async function setAvatar(userId, dataUrl) {
     [userId, '', dataUrl]
   );
   // return saved avatar to API
-  const row = await get(`SELECT avatar FROM profiles WHERE user_id=?`, [userId]);
+  const row = await get(
+    `SELECT avatar FROM profiles WHERE user_id=?`,
+    [userId]
+  );
   return row?.avatar || '';
 }
 
 async function addExtra(userId, text) {
-  await run(`INSERT INTO profile_extras(user_id,text) VALUES(?,?)`, [userId, text]);
-  return await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+  await run(
+    `INSERT INTO profile_extras(user_id,text) VALUES(?,?)`,
+    [userId, text]
+  );
+  return await all(
+    `SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`,
+    [userId]
+  );
 }
 
 async function delExtra(userId, idx) {
   // idx is 0-based in UI, map to actual row by order
-  const rows = await all(`SELECT id FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+  const rows = await all(
+    `SELECT id FROM profile_extras WHERE user_id=? ORDER BY id ASC`,
+    [userId]
+  );
   const row = rows[idx];
-  if (row) await run(`DELETE FROM profile_extras WHERE id=? AND user_id=?`, [row.id, userId]);
-  return await all(`SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`, [userId]);
+  if (row)
+    await run(
+      `DELETE FROM profile_extras WHERE id=? AND user_id=?`,
+      [row.id, userId]
+    );
+  return await all(
+    `SELECT id, text, created_at FROM profile_extras WHERE user_id=? ORDER BY id ASC`,
+    [userId]
+  );
 }
 
 async function repProfile(voterId, username, delta) {
   const u = await getUserByName(username);
-  if (!u) return { ok:false, error:'user-not-found' };
-  if (u.id === voterId) return { ok:false, error:'self-vote' };
+  if (!u) return { ok: false, error: 'user-not-found' };
+  if (u.id === voterId) return { ok: false, error: 'self-vote' };
 
   // upsert-like: replace existing or insert
   await run(
@@ -431,33 +509,44 @@ async function repProfile(voterId, username, delta) {
      ON CONFLICT(user_id, voter_id) DO UPDATE SET value=excluded.value`,
     [u.id, voterId, delta]
   );
-  const r = await get(`SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`, [u.id]);
-  return { ok:true, score: r?.score || 0 };
+  const r = await get(
+    `SELECT COALESCE(SUM(value),0) AS score FROM profile_rep WHERE user_id=?`,
+    [u.id]
+  );
+  return { ok: true, score: r?.score || 0 };
 }
 
 async function listProfileComments(username) {
   const u = await getUserByName(username);
   if (!u) return [];
-  return await all(`
+  return await all(
+    `
     SELECT c.id, c.body, c.created_at,
            COALESCE(a.username,'Anonymous') AS author
     FROM profile_comments c
     LEFT JOIN users a ON a.id = c.author_user_id
     WHERE c.profile_user_id=?
     ORDER BY c.id DESC
-  `, [u.id]);
+  `,
+    [u.id]
+  );
 }
 
 async function addProfileComment(authorId, username, body) {
   const u = await getUserByName(username);
   if (!u) return [];
-  await run(`INSERT INTO profile_comments(profile_user_id,author_user_id,body) VALUES(?,?,?)`,
-    [u.id, authorId, body]);
+  await run(
+    `INSERT INTO profile_comments(profile_user_id,author_user_id,body) VALUES(?,?,?)`,
+    [u.id, authorId, body]
+  );
   return await listProfileComments(username);
 }
 
 async function getUserById(id) {
-  return await get(`SELECT id, username, email, created_at FROM users WHERE id=?`, [id]);
+  return await get(
+    `SELECT id, username, email, created_at FROM users WHERE id=?`,
+    [id]
+  );
 }
 
 module.exports = {
@@ -470,6 +559,7 @@ module.exports = {
   repGame,
   getGameRep,
   getThreadById,
+  deleteThreadWithChildren,
   listLibraryItems,
   addLibraryItem,
   removeLibraryItem,
@@ -484,5 +574,5 @@ module.exports = {
   setAvatar,
   repProfile,
   listProfileComments,
-  addProfileComment,
+  addProfileComment
 };
