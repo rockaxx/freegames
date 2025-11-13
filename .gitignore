@@ -1,8 +1,5 @@
 node_modules/
-database/
 database/db.sqlite
-*/db.sqlite
-db.sqlite
-db
-config/
-database/db.sqlite
+config/admins.config
+config/visitors.config
+config/wl_wants.log
