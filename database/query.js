@@ -132,16 +132,18 @@ function getPendingWhitelist() {
   });
 }
 
-function approveWhitelistUser(id) {
+function approveWhitelistUser(id, state = true) {
   return new Promise((resolve, reject) => {
-    db.run(`UPDATE whitelist_users SET allowed=1 WHERE id=?`, [id], function(err) {
-      if (err) return reject(err);
-      resolve(this.changes > 0);
-    });
+    db.run(
+      `UPDATE whitelist_users SET allowed=? WHERE id=?`,
+      [state ? 1 : 0, id],
+      function(err) {
+        if (err) return reject(err);
+        resolve(this.changes > 0);
+      }
+    );
   });
 }
-
-
 
 module.exports = {
   createUser,

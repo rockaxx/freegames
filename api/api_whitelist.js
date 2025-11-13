@@ -48,6 +48,19 @@ function appendWantLog(username, ip) {
   }
 }
 
+async function enforceWhitelistState(user) {
+  const cfgUsers = loadWhitelistUsernames();
+
+  // bol odstránený z visitors.config → zober mu allowed
+  if (user.allowed && !cfgUsers.includes(user.username)) {
+    await approveWhitelistUser(user.id, false); // nastav allowed = 0
+    user.allowed = 0;
+  }
+
+  return user;
+}
+
+
 router.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body || {};
@@ -103,14 +116,20 @@ router.post('/login', async (req, res) => {
     const user = await getWhitelistUser(sanitizeUsername(username));
     if (!user) return res.status(401).json({ ok: false, error: 'invalid' });
 
+    await enforceWhitelistState(user);
+
     const autoList = loadWhitelistUsernames();
+
+    // auto-approve
     if (!user.allowed && autoList.includes(user.username)) {
-      await approveWhitelistUser(user.id);
+      await approveWhitelistUser(user.id, true);
       user.allowed = 1;
     }
 
-    if (!user.allowed) return res.status(403).json({ ok: false, error: 'not-approved' });
-
+    // po synchronizácii stále nemá allowed?
+    if (!user.allowed) {
+      return res.status(403).json({ ok: false, error: 'not-approved' });
+    }
 
     const [saltHex, hashHex] = String(user.password).split(':');
     const salt = Buffer.from(saltHex, 'hex');
@@ -151,12 +170,31 @@ router.post('/logout', (_req, res) => {
  * GET /api/whitelist/me
  * Returns whitelist session info if logged in.
  */
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   const cookies = parseCookies(req);
   const payload = verifyToken(cookies.w_sid);
   if (!payload) return res.json({ ok: false });
-  return res.json({ ok: true, wlUser: { id: payload.wid, username: payload.username } });
+
+  const user = await getWhitelistUser(payload.username);
+  if (!user) {
+    // user neexistuje → zruš cookie
+    return res.json({ ok: false });
+  }
+
+  await enforceWhitelistState(user);
+
+  if (!user.allowed) {
+    // bol odstránený z visitors.config → vyradiť
+    res.setHeader(
+      "Set-Cookie",
+      "w_sid=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" + (IS_PROD ? "; Secure" : "")
+    );
+    return res.json({ ok: false });
+  }
+
+  return res.json({ ok: true, wlUser: { id: user.id, username: user.username } });
 });
+
 
 /**
  * Admin helpers

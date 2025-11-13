@@ -23,6 +23,10 @@ const { signToken, verifyToken, parseCookies, buildCookie } = require('./auth');
 const { scryptSync, randomBytes, timingSafeEqual } = require('crypto');
 const { initCommunityTables } = require('./database/community_db');
 
+// ==== WHITELIST SYNC (AUTO UPDATE allowed=1/0) ====
+const { startSync } = require('./config/whitelist_sync');
+startSync(); // kontrola visitors.config každých 5 sekúnd
+
 // Whitelist API router (login/register/logout/me for whitelist)
 const wlRouter = require('./api/api_whitelist');
 
